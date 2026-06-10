@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e186a98fe127a4b10877b33eb5e8b096, type: 3}
+  m_Name: MENU_005
+  m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Data.MenuData
+  id: MENU_005
+  displayName: "\uD5C8\uB2C8 \uB514\uC800\uD2B8"
+  icon: {fileID: 0}
+  requirements:
+  - ingredient: {fileID: 11400000, guid: ab4340f7bfe8e40d8b57123bc37d4ac3, type: 2}
+    amount: 1
+  - ingredient: {fileID: 11400000, guid: 36224c09fed1343e9adf9b84fc86c5f0, type: 2}
+    amount: 1
+  cookTime: 10
+  sellPrice: 160
+  unlock:
+    restaurantLevel: 0
+    requiredRegion: 0
+    requiresRegion: 0
