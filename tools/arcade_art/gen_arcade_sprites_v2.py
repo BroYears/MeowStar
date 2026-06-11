@@ -408,53 +408,71 @@ def money():
 
 # ============================ TILES ============================
 def tile_grass():
-    d = lin("gg", P["grass_l"], P["grass"])
+    d = lin("gg", "#b6d879", P["grass"]) + rad("sun", "#d7ec98", P["grass"], 0.32, 0.22, 0.9)
     b = f'<rect width="128" height="128" fill="url(#gg)"/>'
-    for (x, y) in [(20, 30), (54, 18), (92, 40), (110, 80), (34, 96), (72, 104), (16, 70), (98, 16)]:
-        b += f'<path d="M{x} {y} q-3 -10 0 -16 q3 6 0 16 Z" fill="{P["grass_d"]}" opacity="0.5"/>'
-        b += f'<path d="M{x+5} {y} q3 -8 6 -12 q-1 6 -6 12 Z" fill="{P["grass_l"]}" opacity="0.6"/>'
-    for (x, y) in [(44, 60), (80, 70), (24, 44), (104, 54), (64, 30)]:
-        b += f'<circle cx="{x}" cy="{y}" r="2.5" fill="{P["grass_d"]}" opacity="0.25"/>'
-        b += f'<circle cx="{x+3}" cy="{y-2}" r="1.5" fill="#fff7d8" opacity="0.5"/>'  # tiny flowers
+    b += f'<circle cx="38" cy="30" r="82" fill="url(#sun)" opacity="0.34"/>'
+    # Soft leafy clusters, kept sparse so the tile can repeat without looking noisy.
+    for (x, y, s, c) in [(18, 28, 1.0, P["grass_d"]), (50, 18, 0.8, P["leaf"]),
+                         (90, 36, 1.0, P["grass_d"]), (112, 84, 0.9, P["leaf"]),
+                         (34, 98, 1.1, P["grass_d"]), (76, 108, 0.9, P["leaf"]),
+                         (18, 70, 0.75, P["leaf_d"]), (104, 18, 0.75, P["leaf_d"])]:
+        b += f'<path d="M{x} {y} q{-4*s} {-12*s} 0 {-18*s} q{4*s} {7*s} 0 {18*s} Z" fill="{c}" opacity="0.46"/>'
+        b += f'<path d="M{x+6*s} {y+2*s} q{6*s} {-9*s} {10*s} {-14*s} q{-1*s} {7*s} {-10*s} {14*s} Z" fill="{P["grass_l"]}" opacity="0.42"/>'
+    # Wildflowers echo the reference art without becoming a UI distraction.
+    for (x, y, c) in [(45, 62, "#fff7d8"), (84, 70, "#f7d980"), (26, 46, "#d8e8ff"),
+                      (107, 56, "#fff7d8"), (66, 32, "#f7d980"), (70, 98, "#d8e8ff")]:
+        b += f'<circle cx="{x}" cy="{y}" r="2.2" fill="{c}" opacity="0.85"/>'
+        b += f'<circle cx="{x+2}" cy="{y-1}" r="1.3" fill="#fff" opacity="0.55"/>'
     return svg(128, 128, b, d)
 
 def tile_wood():
-    d = lin("wf", P["wood_l"], P["wood"])
+    d = lin("wf", "#e7bd82", P["wood"]) + lin("darkGrain", P["wood_d"], P["wood_dd"])
     b = f'<rect width="128" height="128" fill="url(#wf)"/>'
-    for i in range(4):
-        y = i * 32
-        b += f'<rect x="0" y="{y}" width="128" height="32" fill="none" stroke="{P["wood_dd"]}" stroke-width="2" opacity="0.5"/>'
-        b += f'<line x1="0" y1="{y+10}" x2="128" y2="{y+10}" stroke="{P["wood_dd"]}" stroke-width="1" opacity="0.2"/>'
-        b += f'<line x1="0" y1="{y+22}" x2="128" y2="{y+22}" stroke="{P["wood_l"]}" stroke-width="1" opacity="0.3"/>'
-        off = 64 if i % 2 else 0
-        b += f'<line x1="{off}" y1="{y}" x2="{off}" y2="{y+32}" stroke="{P["wood_dd"]}" stroke-width="2" opacity="0.45"/>'
+    for i in range(5):
+        y = i * 26 - 2
+        b += f'<rect x="-2" y="{y}" width="132" height="28" fill="none" stroke="{P["wood_dd"]}" stroke-width="2" opacity="0.45"/>'
+        off = 58 if i % 2 else 8
+        b += f'<line x1="{off}" y1="{y}" x2="{off}" y2="{y+28}" stroke="{P["wood_dd"]}" stroke-width="2" opacity="0.38"/>'
+        for gx in (18 + i * 5, 70 + i * 3):
+            b += f'<path d="M{gx} {y+8} q18 5 36 0" stroke="url(#darkGrain)" stroke-width="1.4" fill="none" opacity="0.32" stroke-linecap="round"/>'
+            b += f'<path d="M{gx+6} {y+18} q12 -4 26 0" stroke="{P["wood_l"]}" stroke-width="1" fill="none" opacity="0.38" stroke-linecap="round"/>'
+    for (x, y) in [(26, 20), (92, 44), (56, 88), (114, 104)]:
+        b += f'<circle cx="{x}" cy="{y}" r="3" fill="{P["wood_dd"]}" opacity="0.28"/>'
     return svg(128, 128, b, d)
 
 def tile_path():
-    d = lin("pp", P["soil"], P["soil_d"])
+    d = lin("pp", "#cfad78", P["soil"]) + rad("wear", "#dec08a", P["soil_d"], 0.45, 0.4, 0.95)
     b = f'<rect width="128" height="128" fill="url(#pp)"/>'
-    for (x, y, r) in [(30, 40, 5), (80, 30, 4), (100, 90, 6), (40, 100, 4), (64, 64, 5), (20, 80, 3)]:
-        b += f'<circle cx="{x}" cy="{y}" r="{r}" fill="{P["soil_d"]}" opacity="0.35"/>'
+    b += f'<path d="M-10 94 q34 -38 72 -34 q44 4 78 -32 v110 h-150 Z" fill="url(#wear)" opacity="0.42"/>'
+    for (x, y, r) in [(30, 40, 5), (80, 30, 4), (100, 90, 6), (40, 100, 4), (64, 64, 5), (20, 80, 3), (112, 44, 3)]:
+        b += f'<ellipse cx="{x}" cy="{y}" rx="{r+2}" ry="{r}" fill="{P["soil_d"]}" opacity="0.28"/>'
+    for (x, y) in [(18, 24), (58, 28), (96, 64), (28, 112), (118, 104)]:
+        b += f'<path d="M{x} {y} q-3 -8 0 -13 q3 5 0 13 Z" fill="{P["grass_d"]}" opacity="0.36"/>'
     return svg(128, 128, b, d)
 
 def tile_water():
-    d = lin("wt", P["water_l"], P["water"])
+    d = lin("wt", "#b7edf3", P["water"]) + rad("deep", P["water_l"], P["water_d"], 0.65, 0.65, 0.9)
     b = f'<rect width="128" height="128" fill="url(#wt)"/>'
-    for y in (28, 60, 92):
-        b += f'<path d="M0 {y} q16 -8 32 0 t32 0 t32 0 t32 0" fill="none" stroke="{P["water_l"]}" stroke-width="3" opacity="0.6" stroke-linecap="round"/>'
-    for y in (44, 76, 108):
-        b += f'<path d="M0 {y} q16 8 32 0 t32 0 t32 0 t32 0" fill="none" stroke="{P["water_d"]}" stroke-width="2" opacity="0.35" stroke-linecap="round"/>'
+    b += f'<circle cx="88" cy="82" r="86" fill="url(#deep)" opacity="0.35"/>'
+    for y in (24, 54, 84, 112):
+        b += f'<path d="M-8 {y} q18 -8 36 0 t36 0 t36 0 t36 0" fill="none" stroke="#d8fbff" stroke-width="3" opacity="0.58" stroke-linecap="round"/>'
+    for y in (38, 70, 100):
+        b += f'<path d="M-6 {y} q16 8 32 0 t32 0 t32 0 t32 0" fill="none" stroke="{P["water_d"]}" stroke-width="2" opacity="0.34" stroke-linecap="round"/>'
+    for (x, y) in [(30, 28), (102, 48), (66, 92)]:
+        b += f'<ellipse cx="{x}" cy="{y}" rx="11" ry="3" fill="#ffffff" opacity="0.23"/>'
     return svg(128, 128, b, d)
 
 def tile_berryfield():
-    d = lin("bf", P["grass"], P["grass_d"])
+    d = lin("bf", "#8fc45a", P["grass_d"])
     b = f'<rect width="128" height="128" fill="url(#bf)"/>'
-    for (x, y) in [(32, 40), (88, 36), (48, 92), (96, 96), (20, 80)]:
+    for (x, y) in [(32, 40), (88, 36), (48, 92), (96, 96), (20, 80), (118, 66)]:
         b += (f'<ellipse cx="{x}" cy="{y+6}" rx="16" ry="6" fill="{P["shadow"]}" opacity="0.12"/>'
               f'<circle cx="{x}" cy="{y}" r="13" fill="{P["berry_leaf"]}" {OUTLINE}/>'
               f'<circle cx="{x-4}" cy="{y-2}" r="3.5" fill="{P["berry"]}"/>'
               f'<circle cx="{x+5}" cy="{y+1}" r="3.5" fill="{P["berry"]}"/>'
               f'<circle cx="{x}" cy="{y+5}" r="3.5" fill="{P["berry_d"]}"/>')
+    for (x, y) in [(64, 26), (72, 68), (26, 108), (108, 114)]:
+        b += f'<circle cx="{x}" cy="{y}" r="2" fill="#fff7d8" opacity="0.7"/>'
     return svg(128, 128, b, d)
 
 # ============================ PADS ============================
@@ -483,51 +501,62 @@ def pad(kind):
 
 # ============================ PROPS ============================
 def tree():
-    W, H = 190, 230
-    d = rad("tl", P["leaf_l"], P["leaf_d"], 0.4, 0.35, 0.7) + lin("tk", P["trunk"], P["trunk_d"])
-    b = shadow(95, 214, 58, 14)
-    b += f'<rect x="82" y="138" width="26" height="74" rx="11" fill="url(#tk)" {OUTLINE}/>'
-    b += f'<circle cx="95" cy="96" r="60" fill="url(#tl)" {OUTLINE}/>'
-    b += f'<circle cx="56" cy="116" r="38" fill="url(#tl)" {OUTLINE}/>'
-    b += f'<circle cx="134" cy="116" r="38" fill="url(#tl)" {OUTLINE}/>'
-    b += f'<circle cx="78" cy="76" r="14" fill="{P["leaf_l"]}" opacity="0.5"/>'
-    # a couple of apples
-    b += f'<circle cx="70" cy="120" r="6" fill="{P["red"]}"/><circle cx="120" cy="100" r="6" fill="{P["red"]}"/>'
+    W, H = 210, 250
+    d = rad("tl", "#b9d86f", P["leaf_d"], 0.4, 0.34, 0.75) + lin("tk", P["trunk"], P["trunk_d"]) + lin("autumn", "#f0b35a", "#c98235")
+    b = shadow(105, 232, 62, 14)
+    b += f'<path d="M94 142 q-12 34 -14 82 h36 q-2 -48 -14 -82 Z" fill="url(#tk)" {OUTLINE}/>'
+    b += f'<path d="M100 154 q-26 -30 -50 -42 M110 154 q34 -28 56 -48" stroke="{P["trunk_d"]}" stroke-width="8" fill="none" stroke-linecap="round"/>'
+    for (x, y, r, c) in [(104, 78, 58, "url(#tl)"), (58, 112, 39, "url(#tl)"),
+                         (148, 112, 39, "url(#tl)"), (84, 56, 28, "url(#tl)"),
+                         (132, 60, 30, "url(#tl)"), (68, 92, 22, "url(#autumn)"),
+                         (158, 86, 20, "url(#autumn)")]:
+        b += f'<circle cx="{x}" cy="{y}" r="{r}" fill="{c}" {OUTLINE}/>'
+    for (x, y, c) in [(80, 78, P["grass_l"]), (122, 96, P["grass_l"]), (52, 126, "#f3c66c"), (150, 126, "#e49b4a")]:
+        b += f'<path d="M{x} {y} q8 -12 20 -6 q-9 10 -20 6 Z" fill="{c}" opacity="0.65"/>'
     return svg(W, H, b, d)
 
 def bush():
-    W, H = 140, 95
-    d = lin("bsh", P["grass"], P["grass_d"])
-    b = shadow(70, 84, 52, 10)
-    b += f'<circle cx="44" cy="56" r="28" fill="url(#bsh)" {OUTLINE}/>'
-    b += f'<circle cx="96" cy="56" r="28" fill="url(#bsh)" {OUTLINE}/>'
-    b += f'<circle cx="70" cy="44" r="32" fill="url(#bsh)" {OUTLINE}/>'
-    b += f'<circle cx="60" cy="36" r="9" fill="{P["leaf_l"]}" opacity="0.5"/>'
-    b += f'<circle cx="50" cy="56" r="4" fill="{P["berry"]}"/><circle cx="88" cy="58" r="4" fill="{P["berry"]}"/>'
+    W, H = 160, 110
+    d = lin("bsh", "#96c95e", P["grass_d"])
+    b = shadow(80, 96, 58, 10)
+    for (x, y, r) in [(44, 66, 30), (82, 52, 36), (118, 68, 30), (68, 76, 28), (102, 78, 26)]:
+        b += f'<circle cx="{x}" cy="{y}" r="{r}" fill="url(#bsh)" {OUTLINE}/>'
+    for (x, y, c) in [(58, 48, P["leaf_l"]), (90, 38, P["leaf_l"]), (120, 56, P["leaf"]), (40, 78, P["leaf_d"])]:
+        b += f'<path d="M{x} {y} q8 -12 20 -6 q-8 11 -20 6 Z" fill="{c}" opacity="0.65"/>'
+    for (x, y, c) in [(52, 64, P["berry"]), (84, 70, P["berry_d"]), (112, 72, P["berry"]), (74, 90, "#fff7d8"), (126, 88, "#d8e8ff")]:
+        b += f'<circle cx="{x}" cy="{y}" r="4" fill="{c}" opacity="0.88"/>'
     return svg(W, H, b, d)
 
 def fence():
-    W, H = 160, 120
+    W, H = 180, 130
     d = lin("fn", P["wood_l"], P["wood_dd"])
-    b = ""
-    for x in (24, 80, 136):
-        b += f'<rect x="{x-9}" y="34" width="18" height="78" rx="6" fill="url(#fn)" {OUTLINE}/>'
-        b += f'<path d="M{x-9} 34 l9 -12 l9 12 Z" fill="{P["wood_l"]}" {OUTLINE}/>'
-    for y in (52, 84):
-        b += f'<rect x="10" y="{y}" width="140" height="12" rx="5" fill="url(#fn)" {OUTLINE}/>'
+    b = shadow(90, 120, 74, 8, 0.12)
+    for x in (26, 90, 154):
+        b += f'<rect x="{x-10}" y="38" width="20" height="82" rx="7" fill="url(#fn)" {OUTLINE}/>'
+        b += f'<path d="M{x-10} 38 l10 -14 l10 14 Z" fill="{P["wood_l"]}" {OUTLINE}/>'
+        b += f'<path d="M{x-4} 54 q4 18 0 38" stroke="{P["wood_dd"]}" stroke-width="1.4" fill="none" opacity="0.35"/>'
+    for y in (56, 90):
+        b += f'<rect x="8" y="{y}" width="164" height="13" rx="6" fill="url(#fn)" {OUTLINE}/>'
+    # Leaves crawling on the fence, tying it back to the forest kitchen.
+    b += f'<path d="M28 88 q32 -28 72 -18 q26 6 48 -12" stroke="{P["leaf_d"]}" stroke-width="3" fill="none" opacity="0.65"/>'
+    for (x, y) in [(48, 76), (76, 68), (114, 68), (138, 60)]:
+        b += f'<ellipse cx="{x}" cy="{y}" rx="7" ry="4" fill="{P["leaf"]}" transform="rotate(-24 {x} {y})"/>'
     return svg(W, H, b, d)
 
 def lantern():
-    W, H = 90, 150
+    W, H = 100, 165
     d = rad("lg", P["lantern_glow"], P["lantern"], 0.5, 0.5, 0.7)
-    b = shadow(45, 142, 26, 8)
-    b += f'<path d="M45 8 q-8 0 -8 10 h16 q0 -10 -8 -10 Z" fill="{P["wood_dd"]}"/>'
-    b += f'<rect x="30" y="22" width="30" height="10" rx="4" fill="{P["wood_dd"]}" {OUTLINE}/>'
-    b += f'<rect x="28" y="30" width="34" height="70" rx="10" fill="url(#lg)" {OUTLINE}/>'
-    b += f'<ellipse cx="45" cy="66" rx="9" ry="16" fill="{P["lantern_glow"]}"/>'
-    b += f'<rect x="30" y="98" width="30" height="12" rx="4" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b = shadow(50, 154, 28, 8)
+    b += f'<path d="M50 10 q-10 0 -10 12 h20 q0 -12 -10 -12 Z" fill="{P["wood_dd"]}"/>'
+    b += f'<path d="M28 26 q22 -18 44 0" stroke="{P["wood_dd"]}" stroke-width="5" fill="none" stroke-linecap="round"/>'
+    b += f'<rect x="33" y="32" width="34" height="11" rx="4" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<rect x="30" y="42" width="40" height="76" rx="12" fill="url(#lg)" {OUTLINE}/>'
+    b += f'<ellipse cx="50" cy="80" rx="10" ry="18" fill="{P["lantern_glow"]}"/>'
+    b += f'<path d="M50 64 q-8 12 0 24 q8 -12 0 -24 Z" fill="#fff7d8" opacity="0.7"/>'
+    b += f'<rect x="33" y="116" width="34" height="13" rx="4" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<rect x="46" y="128" width="8" height="24" rx="3" fill="{P["wood_dd"]}" {OUTLINE}/>'
     # soft glow halo
-    b = f'<circle cx="45" cy="66" r="40" fill="{P["lantern"]}" opacity="0.18"/>' + b
+    b = f'<circle cx="50" cy="80" r="48" fill="{P["lantern"]}" opacity="0.18"/>' + b
     return svg(W, H, b, d)
 
 # World characters are emitted together so the player, staff, and every customer
