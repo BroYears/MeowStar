@@ -8,16 +8,36 @@ namespace Nyangsta.Arcade
     {
         [SerializeField] private double amount = 10;
         [SerializeField] private float flyDuration = 0.25f;
+        [SerializeField] private TextMesh amountLabel;
 
         private Transform _target;
         private Vector3 _startPos;
         private float _t;
 
-        public double Amount { get => amount; set => amount = value; }
+        public double Amount
+        {
+            get => amount;
+            set
+            {
+                amount = System.Math.Max(0, value);
+                UpdateLabel();
+            }
+        }
+
+        public void SetLabel(TextMesh label)
+        {
+            amountLabel = label;
+            UpdateLabel();
+        }
 
         private void Reset()
         {
             GetComponent<Collider>().isTrigger = true;
+        }
+
+        private void Awake()
+        {
+            UpdateLabel();
         }
 
         private void OnTriggerEnter(Collider other)
@@ -49,8 +69,21 @@ namespace Nyangsta.Arcade
             if (_t >= 1f)
             {
                 EconomyManager.Instance?.AddGold(amount);
+                Nyangsta.Audio.Sfx.Coin();
                 Destroy(gameObject);
             }
+        }
+
+        private void LateUpdate()
+        {
+            if (amountLabel != null)
+                amountLabel.transform.rotation = Quaternion.Euler(65f, 0f, 0f);
+        }
+
+        private void UpdateLabel()
+        {
+            if (amountLabel != null)
+                amountLabel.text = $"+{amount:N0}G";
         }
     }
 }

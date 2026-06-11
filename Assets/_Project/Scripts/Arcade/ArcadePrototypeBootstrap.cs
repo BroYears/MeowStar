@@ -55,6 +55,10 @@ namespace Nyangsta.Arcade
             CreateMaterials();
             ConfigureCameraAndLight();
 
+            // Save-backed unlock progress; completed zones are restored at no cost below.
+            var saveData = SaveManager.Instance != null ? SaveManager.Instance.Data : new SaveData();
+            var progress = new ArcadeProgressService(saveData.arcadeCompletedZones);
+
             var root = new GameObject("_ArcadeM1_World");
             var prefabs = new GameObject("_ArcadeRuntimePrefabs");
             prefabs.transform.SetParent(root.transform);
@@ -93,8 +97,8 @@ namespace Nyangsta.Arcade
             tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, 2.4f), false));
             var tableArray = tables.ToArray();
 
-            MakeBuildZone(root.transform, "BuildZone_Table2", 60, tables[1].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 0f));
-            MakeBuildZone(root.transform, "BuildZone_Table3", 140, tables[2].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 2.4f));
+            MakeBuildZone(root.transform, "BuildZone_Table2", 30, tables[1].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 0f), "테이블 2", progress);
+            MakeBuildZone(root.transform, "BuildZone_Table3", 120, tables[2].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 2.4f), "테이블 3", progress);
 
             // Build zone that unlocks the whole berry production line at once.
             // Reparent the station/gather *roots* (not the zone children) so the
@@ -104,15 +108,15 @@ namespace Nyangsta.Arcade
             berryGather.transform.SetParent(berryLine.transform, true);
             juicer.transform.parent.SetParent(berryLine.transform, true);
             berryLine.SetActive(false);
-            MakeBuildZone(root.transform, "BuildZone_BerryLine", 100, berryLine, new Vector3(-3.6f, 0.08f, 3.2f));
+            MakeBuildZone(root.transform, "BuildZone_BerryLine", 80, berryLine, new Vector3(-3.6f, 0.08f, 3.2f), "베리 라인", progress);
 
             MakeCustomerSpawner(root.transform, customerPrefab, tableArray, grill, juicer);
 
             // ---- Hire zones: automate each production line ----
             MakeHireZone(root.transform, 150, new Vector3(-3.6f, 0.08f, -3.6f),
-                fishGather, grill, tableArray, ArcadeItemType.Fish, ArcadeItemType.GrilledFish, player.transform.position);
+                fishGather, grill, tableArray, ArcadeItemType.Fish, ArcadeItemType.GrilledFish, player.transform.position, "생선 직원", progress);
             MakeHireZone(root.transform, 220, new Vector3(-3.6f, 0.08f, 4.4f),
-                berryGather, juicer, tableArray, ArcadeItemType.Berry, ArcadeItemType.BerryJuice, player.transform.position);
+                berryGather, juicer, tableArray, ArcadeItemType.Berry, ArcadeItemType.BerryJuice, player.transform.position, "베리 직원", progress);
 
             // ---- Decorative props around the edges (storybook framing) ----
             var deco = new GameObject("Decor");
@@ -124,6 +128,10 @@ namespace Nyangsta.Arcade
             MakeProp(deco.transform, "bush", new Vector3(6.4f, 0f, 0.2f), 1.0f);
             MakeProp(deco.transform, "fence", new Vector3(0.5f, 0f, -4.7f), 1.4f);
             MakeProp(deco.transform, "fence", new Vector3(3.6f, 0f, -4.7f), 1.4f);
+            // Lanterns for the cozy cabin glow (matches the concept restaurant interiors).
+            MakeProp(deco.transform, "lantern", new Vector3(2.0f, 0f, -3.4f), 1.3f);
+            MakeProp(deco.transform, "lantern", new Vector3(6.2f, 0f, -3.4f), 1.3f);
+            MakeProp(deco.transform, "lantern", new Vector3(-3.4f, 0f, -1.0f), 1.3f);
 
             var hud = new GameObject("ArcadeHUD");
             hud.AddComponent<ArcadeHUD>().Configure(stack);
@@ -234,12 +242,15 @@ namespace Nyangsta.Arcade
             return table;
         }
 
-        private void MakeBuildZone(Transform parent, string name, double cost, GameObject target, Vector3 pos)
+        private void MakeBuildZone(Transform parent, string name, double cost, GameObject target, Vector3 pos, string displayName, ArcadeProgressService progress)
         {
             var zone = MakeZone(name, parent, pos, new Vector3(1.15f, 0.05f, 1.15f), new Color(1f, 0.9f, 0.25f, 0.62f));
             AttachPad(zone, "pad_build", 1.7f);
-            var label = MakeLabel($"{cost:N0}G", zone.transform, new Vector3(0f, 0.25f, -0.95f));
-            zone.AddComponent<BuildZone>().Configure(cost, 5, 0.08f, target, label);
+            var label = MakeLabel($"{displayName}\n{cost:N0}G", zone.transform, new Vector3(0f, 0.25f, -0.95f));
+            var build = zone.AddComponent<BuildZone>();
+            build.Configure(cost, 5, 0.08f, target, label, displayName);
+            build.BindProgress(progress, name);
+            if (progress.IsComplete(name)) build.RestoreCompleted();
         }
 
         /// <summary>
@@ -276,18 +287,23 @@ namespace Nyangsta.Arcade
             TableZone[] tables,
             ArcadeItemType raw,
             ArcadeItemType cooked,
-            Vector3 staffSpawn)
+            Vector3 staffSpawn,
+            string displayName,
+            ArcadeProgressService progress)
         {
-            var zone = MakeZone($"HireZone_{cooked}", parent, pos, new Vector3(1.15f, 0.05f, 1.15f), new Color(0.4f, 0.7f, 1f, 0.62f));
+            string zoneId = $"HireZone_{cooked}";
+            var zone = MakeZone(zoneId, parent, pos, new Vector3(1.15f, 0.05f, 1.15f), new Color(0.4f, 0.7f, 1f, 0.62f));
             AttachPad(zone, "pad_hire", 1.7f);
-            var label = MakeLabel($"HIRE\n{cost:N0}G", zone.transform, new Vector3(0f, 0.25f, -0.95f));
+            var label = MakeLabel($"{displayName}\n{cost:N0}G", zone.transform, new Vector3(0f, 0.25f, -0.95f));
 
             var spawn = new GameObject("StaffSpawn").transform;
             spawn.SetParent(zone.transform);
             spawn.position = staffSpawn;
 
-            zone.AddComponent<HireZone>().Configure(
-                cost, 8, label, gather, cook, tables, raw, cooked, spawn);
+            var hire = zone.AddComponent<HireZone>();
+            hire.Configure(cost, 8, label, gather, cook, tables, raw, cooked, spawn, displayName);
+            hire.BindProgress(progress, zoneId);
+            if (progress.IsComplete(zoneId)) hire.RestoreCompleted();
         }
 
         private void MakeCustomerSpawner(
@@ -348,7 +364,13 @@ namespace Nyangsta.Arcade
             AttachItemSprite(go, "money", 0.6f);
 
             var pile = go.AddComponent<MoneyPile>();
+            var label = MakeLabel("+10G", go.transform, new Vector3(0f, 0.72f, 0f));
+            label.fontSize = 48;
+            label.characterSize = 0.04f;
+            label.color = new Color(0.08f, 0.52f, 0.16f);
+            label.transform.localScale = InverseScale(go.transform.localScale);
             pile.Amount = 10;
+            pile.SetLabel(label);
             go.SetActive(false);
             return pile;
         }
@@ -544,6 +566,14 @@ namespace Nyangsta.Arcade
         private static float HostTopLocalY(GameObject host)
         {
             return host.transform.localScale.y * 0.5f;
+        }
+
+        private static Vector3 InverseScale(Vector3 scale)
+        {
+            return new Vector3(
+                1f / Mathf.Max(0.0001f, scale.x),
+                1f / Mathf.Max(0.0001f, scale.y),
+                1f / Mathf.Max(0.0001f, scale.z));
         }
 
         private static void HideMesh(GameObject host)

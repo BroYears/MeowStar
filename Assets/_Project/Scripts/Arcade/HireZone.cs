@@ -1,5 +1,6 @@
 using UnityEngine;
 using Nyangsta.Economy;
+using System.Collections.Generic;
 
 namespace Nyangsta.Arcade
 {
@@ -9,10 +10,13 @@ namespace Nyangsta.Arcade
     /// </summary>
     public class HireZone : InteractionZone
     {
+        private static readonly List<HireZone> RegisteredZones = new();
+
         [SerializeField] private double totalCost = 150;
         [SerializeField] private double drainPerTick = 8;
         [SerializeField] private float tickInterval = 0.1f;
         [SerializeField] private TextMesh costLabel;
+        [SerializeField] private string displayName = "직원 고용";
 
         private GatherZone _gatherZone;
         private CookStation _cookStation;
@@ -24,6 +28,14 @@ namespace Nyangsta.Arcade
         private double _paid;
         private float _timer;
         private bool _hired;
+        private string _zoneId;
+        private ArcadeProgressService _progress;
+
+        public static IReadOnlyList<HireZone> ActiveZones => RegisteredZones;
+        public string DisplayName => displayName;
+        public double RemainingCost => System.Math.Max(0, totalCost - _paid);
+        public bool IsComplete => _hired || _paid >= totalCost;
+        public bool IsLockedByFacility => !IsFacilityReady();
 
         public void Configure(
             double cost,
@@ -34,11 +46,13 @@ namespace Nyangsta.Arcade
             TableZone[] tables,
             ArcadeItemType raw,
             ArcadeItemType cooked,
-            Transform spawnPoint)
+            Transform spawnPoint,
+            string name)
         {
             totalCost = System.Math.Max(1, cost);
             drainPerTick = System.Math.Max(1, tick);
             costLabel = label;
+            displayName = string.IsNullOrWhiteSpace(name) ? displayName : name;
             _gatherZone = gather;
             _cookStation = cook;
             _tables = tables;
@@ -48,9 +62,24 @@ namespace Nyangsta.Arcade
             UpdateLabel();
         }
 
+        private void OnEnable()
+        {
+            if (!RegisteredZones.Contains(this)) RegisteredZones.Add(this);
+            UpdateLabel();
+        }
+
+        private void OnDisable()
+        {
+            RegisteredZones.Remove(this);
+        }
+
         protected override void OnAgentStay(StackHolder agent, float dt)
         {
-            if (_hired || _paid >= totalCost) return;
+            if (_hired || _paid >= totalCost || !IsPlayer(agent) || !IsFacilityReady())
+            {
+                UpdateLabel();
+                return;
+            }
 
             _timer += dt;
             if (_timer < tickInterval) return;
@@ -66,10 +95,28 @@ namespace Nyangsta.Arcade
             if (_paid >= totalCost) Hire();
         }
 
+        /// <summary>Hook this zone into the save-backed progress tracker.</summary>
+        public void BindProgress(ArcadeProgressService progress, string zoneId)
+        {
+            _progress = progress;
+            _zoneId = zoneId;
+        }
+
+        /// <summary>Re-applies a previously saved hire: spawns the staff at no cost.</summary>
+        public void RestoreCompleted()
+        {
+            _hired = true;
+            _paid = totalCost;
+            SpawnStaff();
+            gameObject.SetActive(false);
+        }
+
         private void Hire()
         {
             _hired = true;
             SpawnStaff();
+            if (_progress != null && _progress.MarkComplete(_zoneId))
+                Save.SaveManager.Instance?.Save();
             gameObject.SetActive(false);
         }
 
@@ -122,7 +169,21 @@ namespace Nyangsta.Arcade
         private void UpdateLabel()
         {
             if (costLabel != null)
-                costLabel.text = $"HIRE\n{System.Math.Max(0, totalCost - _paid):N0}G";
+                costLabel.text = IsFacilityReady()
+                    ? $"{displayName}\n{RemainingCost:N0}G"
+                    : $"{displayName}\n잠김";
+        }
+
+        private bool IsFacilityReady()
+        {
+            bool gatherReady = _gatherZone == null || _gatherZone.gameObject.activeInHierarchy;
+            bool cookReady = _cookStation == null || _cookStation.gameObject.activeInHierarchy;
+            return gatherReady && cookReady;
+        }
+
+        private static bool IsPlayer(StackHolder agent)
+        {
+            return agent != null && agent.GetComponentInParent<ArcadePlayerController>() != null;
         }
     }
 }

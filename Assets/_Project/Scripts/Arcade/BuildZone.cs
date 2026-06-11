@@ -1,28 +1,51 @@
 using UnityEngine;
 using Nyangsta.Economy;
+using System.Collections.Generic;
 
 namespace Nyangsta.Arcade
 {
     public class BuildZone : InteractionZone
     {
+        private static readonly List<BuildZone> RegisteredZones = new();
+
         [SerializeField] private double totalCost = 100;
         [SerializeField] private double drainPerTick = 5;
         [SerializeField] private float tickInterval = 0.1f;
         [SerializeField] private GameObject targetToActivate;
         [SerializeField] private TextMesh costLabel;
+        [SerializeField] private string displayName = "새 시설";
 
         private double _paid;
         private float _timer;
+        private bool _completed;
+        private string _zoneId;
+        private ArcadeProgressService _progress;
 
-        public void Configure(double cost, double tick, float interval, GameObject target, TextMesh label)
+        public static IReadOnlyList<BuildZone> ActiveZones => RegisteredZones;
+        public string DisplayName => displayName;
+        public double RemainingCost => System.Math.Max(0, totalCost - _paid);
+        public bool IsComplete => _completed || _paid >= totalCost;
+
+        public void Configure(double cost, double tick, float interval, GameObject target, TextMesh label, string name)
         {
-            totalCost = Mathf.Max(1f, (float)cost);
-            drainPerTick = Mathf.Max(1f, (float)tick);
+            totalCost = System.Math.Max(1, cost);
+            drainPerTick = System.Math.Max(1, tick);
             tickInterval = Mathf.Max(0.02f, interval);
             targetToActivate = target;
             costLabel = label;
+            displayName = string.IsNullOrWhiteSpace(name) ? displayName : name;
             if (targetToActivate != null) targetToActivate.SetActive(false);
             UpdateLabel();
+        }
+
+        private void OnEnable()
+        {
+            if (!RegisteredZones.Contains(this)) RegisteredZones.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            RegisteredZones.Remove(this);
         }
 
         private void Start()
@@ -33,7 +56,7 @@ namespace Nyangsta.Arcade
 
         protected override void OnAgentStay(StackHolder agent, float dt)
         {
-            if (_paid >= totalCost) return;
+            if (_paid >= totalCost || !IsPlayer(agent)) return;
 
             _timer += dt;
             if (_timer < tickInterval) return;
@@ -49,16 +72,40 @@ namespace Nyangsta.Arcade
             if (_paid >= totalCost) Complete();
         }
 
+        /// <summary>Hook this zone into the save-backed progress tracker.</summary>
+        public void BindProgress(ArcadeProgressService progress, string zoneId)
+        {
+            _progress = progress;
+            _zoneId = zoneId;
+        }
+
+        /// <summary>Re-applies a previously saved completion: activates the target at no cost.</summary>
+        public void RestoreCompleted()
+        {
+            _completed = true;
+            _paid = totalCost;
+            if (targetToActivate != null) targetToActivate.SetActive(true);
+            gameObject.SetActive(false);
+        }
+
         private void Complete()
         {
+            _completed = true;
             if (targetToActivate != null) targetToActivate.SetActive(true);
+            if (_progress != null && _progress.MarkComplete(_zoneId))
+                Save.SaveManager.Instance?.Save();
             gameObject.SetActive(false);
         }
 
         private void UpdateLabel()
         {
             if (costLabel != null)
-                costLabel.text = $"{System.Math.Max(0, totalCost - _paid):N0}G";
+                costLabel.text = $"{displayName}\n{RemainingCost:N0}G";
+        }
+
+        private static bool IsPlayer(StackHolder agent)
+        {
+            return agent != null && agent.GetComponentInParent<ArcadePlayerController>() != null;
         }
     }
 }
