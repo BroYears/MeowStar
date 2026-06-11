@@ -279,49 +279,74 @@ def guest_vipcat():
 
 # ============================ FACILITIES ============================
 def grill():
-    W, H = 230, 210
-    d = lin("gs", P["grill_l"], P["grill_steel"]) + lin("gl", P["grill_steel"], P["grill_d"]) + rad("em", P["ember_l"], P["ember"])
-    b = shadow(115, 192, 88, 16)
-    b += f'<rect x="48" y="124" width="14" height="58" rx="6" fill="{P["grill_d"]}" {OUTLINE}/>'
-    b += f'<rect x="168" y="124" width="14" height="58" rx="6" fill="{P["grill_d"]}" {OUTLINE}/>'
-    b += f'<rect x="36" y="80" width="158" height="56" rx="26" fill="url(#gl)" {OUTLINE}/>'
-    b += f'<ellipse cx="115" cy="82" rx="82" ry="27" fill="url(#gs)" {OUTLINE}/>'
-    b += f'<ellipse cx="115" cy="80" rx="66" ry="19" fill="{P["grill_d"]}"/>'
-    for (x, y) in [(88, 78), (115, 82), (142, 77), (102, 84), (128, 84)]:
-        b += f'<circle cx="{x}" cy="{y}" r="8" fill="url(#em)"/>'
-    for x in (82, 102, 122, 142):
-        b += f'<line x1="{x}" y1="64" x2="{x}" y2="94" stroke="{P["grill_l"]}" stroke-width="3" opacity="0.85"/>'
-    b += f'<path d="M115 50 q-11 16 0 24 q11 -10 0 -24 Z" fill="{P["ember"]}"/><path d="M115 56 q-6 9 0 15 q6 -7 0 -15 Z" fill="{P["ember_l"]}"/>'
+    W, H = 250, 230
+    d = (
+        lin("woodTop", P["wood_l"], P["wood"]) +
+        lin("woodSide", P["wood"], P["wood_dd"]) +
+        lin("stone", "#9b9180", "#686056") +
+        lin("iron", P["grill_l"], P["grill_d"]) +
+        rad("em", P["ember_l"], P["ember"])
+    )
+    b = shadow(125, 210, 92, 16)
+    # Log-cabin prep table frame.
+    b += f'<rect x="50" y="116" width="150" height="62" rx="18" fill="url(#woodSide)" {OUTLINE}/>'
+    b += f'<ellipse cx="125" cy="116" rx="84" ry="24" fill="url(#woodTop)" {OUTLINE}/>'
+    for x in (70, 180):
+        b += f'<rect x="{x}" y="158" width="18" height="46" rx="7" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    # Stone/iron fire bowl embedded in the wood.
+    b += f'<ellipse cx="125" cy="102" rx="64" ry="25" fill="url(#stone)" {OUTLINE}/>'
+    b += f'<ellipse cx="125" cy="98" rx="48" ry="17" fill="{P["grill_d"]}"/>'
+    for (x, y) in [(101, 98), (125, 101), (149, 98), (113, 105), (137, 105)]:
+        b += f'<circle cx="{x}" cy="{y}" r="7" fill="url(#em)"/>'
+    for x in (92, 110, 128, 146, 164):
+        b += f'<line x1="{x}" y1="78" x2="{x}" y2="112" stroke="url(#iron)" stroke-width="4" opacity="0.9" stroke-linecap="round"/>'
+    b += f'<path d="M125 60 q-13 18 0 28 q13 -11 0 -28 Z" fill="{P["ember"]}" {OUTLINE}/>'
+    b += f'<path d="M125 68 q-6 9 0 16 q6 -7 0 -16 Z" fill="{P["ember_l"]}"/>'
+    # Cabin-kitchen detail: hanging herb hook on one side.
+    b += f'<path d="M196 82 q18 16 12 34" stroke="{P["line"]}" stroke-width="3" fill="none" opacity="0.55" stroke-linecap="round"/>'
+    b += f'<ellipse cx="204" cy="120" rx="6" ry="13" fill="{P["leaf"]}" opacity="0.9"/>'
+    b += f'<ellipse cx="214" cy="122" rx="5" ry="11" fill="{P["leaf_d"]}" opacity="0.9"/>'
     return svg(W, H, b, d)
 
 def juicer():
-    W, H = 200, 220
-    d = lin("jb", P["juice"], P["juice_d"]) + lin("gls", "#ffffff", "#ffe1f0")
-    b = shadow(100, 202, 74, 15)
-    b += f'<rect x="40" y="124" width="120" height="58" rx="22" fill="url(#jb)" {OUTLINE}/>'
-    b += f'<ellipse cx="100" cy="126" rx="60" ry="18" fill="{P["juice"]}"/>'
-    b += f'<path d="M64 62 h72 v54 q0 18 -18 18 h-36 q-18 0 -18 -18 Z" fill="url(#gls)" opacity="0.92" {OUTLINE}/>'
-    b += f'<path d="M70 94 h60 v22 q0 14 -14 14 h-32 q-14 0 -14 -14 Z" fill="url(#jb)"/>'
-    b += f'<ellipse cx="100" cy="94" rx="30" ry="6" fill="{P["juice_d"]}" opacity="0.6"/>'
-    b += f'<rect x="92" y="42" width="16" height="22" rx="6" fill="{P["juice_d"]}" {OUTLINE}/>'
-    b += f'<circle cx="84" cy="42" r="10" fill="{P["berry"]}" {OUTLINE}/><circle cx="106" cy="38" r="10" fill="{P["berry_d"]}" {OUTLINE}/><circle cx="120" cy="44" r="9" fill="{P["berry"]}" {OUTLINE}/>'
-    b += f'<ellipse cx="100" cy="26" rx="7" ry="3" fill="{P["berry_leaf"]}"/>'
+    W, H = 220, 230
+    d = lin("woodTop", P["wood_l"], P["wood"]) + lin("woodSide", P["wood"], P["wood_dd"]) + lin("gls", "#ffffff", "#ffe1f0") + lin("juiceFill", P["juice"], P["juice_d"])
+    b = shadow(110, 212, 78, 15)
+    # Wooden counter base, matching the kitchen tables.
+    b += f'<rect x="38" y="140" width="144" height="52" rx="18" fill="url(#woodSide)" {OUTLINE}/>'
+    b += f'<ellipse cx="110" cy="140" rx="72" ry="20" fill="url(#woodTop)" {OUTLINE}/>'
+    b += f'<rect x="58" y="178" width="16" height="28" rx="6" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<rect x="146" y="178" width="16" height="28" rx="6" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    # Glass jar sunk into the counter.
+    b += f'<path d="M72 64 h76 v60 q0 20 -20 20 h-36 q-20 0 -20 -20 Z" fill="url(#gls)" opacity="0.93" {OUTLINE}/>'
+    b += f'<path d="M80 98 h60 v24 q0 14 -14 14 h-32 q-14 0 -14 -14 Z" fill="url(#juiceFill)"/>'
+    b += f'<ellipse cx="110" cy="98" rx="30" ry="6" fill="{P["juice_d"]}" opacity="0.6"/>'
+    # Cottage hand press.
+    b += f'<rect x="101" y="38" width="18" height="32" rx="6" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<path d="M78 52 h64 q12 0 18 -12" stroke="{P["wood_dd"]}" stroke-width="7" fill="none" stroke-linecap="round"/>'
+    for (x, y, c) in [(86, 48, P["berry"]), (108, 42, P["berry_d"]), (130, 49, P["berry"]), (120, 55, P["berry_d"])]:
+        b += f'<circle cx="{x}" cy="{y}" r="10" fill="{c}" {OUTLINE}/>'
+    b += f'<ellipse cx="108" cy="28" rx="7" ry="3.5" fill="{P["berry_leaf"]}" transform="rotate(-18 108 28)"/>'
     return svg(W, H, b, d)
 
 def table():
-    W, H = 240, 180
-    d = lin("tt", P["wood_l"], P["wood"]) + lin("tg", P["wood"], P["wood_dd"])
-    b = shadow(120, 158, 94, 16)
-    b += f'<rect x="42" y="96" width="14" height="54" rx="5" fill="{P["wood_dd"]}" {OUTLINE}/>'
-    b += f'<rect x="184" y="96" width="14" height="54" rx="5" fill="{P["wood_dd"]}" {OUTLINE}/>'
-    b += f'<ellipse cx="120" cy="100" rx="102" ry="32" fill="url(#tg)" {OUTLINE}/>'
-    b += f'<ellipse cx="120" cy="88" rx="102" ry="32" fill="url(#tt)" {OUTLINE}/>'
-    # plank grain
-    for dx in (-60, -20, 20, 60):
-        b += f'<path d="M{120+dx} 60 q-4 28 0 56" stroke="{P["wood_d"]}" stroke-width="2" fill="none" opacity="0.3"/>'
-    # plate + food
-    b += f'<ellipse cx="120" cy="86" rx="28" ry="10" fill="{P["cream"]}" {OUTLINE}/>'
-    b += f'<ellipse cx="120" cy="84" rx="18" ry="6" fill="#e8d5b0"/>'
+    W, H = 250, 190
+    d = lin("top", P["wood_l"], P["wood"]) + lin("rim", P["wood"], P["wood_dd"]) + lin("cloth", "#fdf6ea", "#eadcc8")
+    b = shadow(125, 168, 96, 16)
+    for x in (48, 188):
+        b += f'<rect x="{x}" y="100" width="16" height="58" rx="6" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<ellipse cx="125" cy="103" rx="106" ry="34" fill="url(#rim)" {OUTLINE}/>'
+    b += f'<ellipse cx="125" cy="88" rx="106" ry="34" fill="url(#top)" {OUTLINE}/>'
+    # Cozy checkered runner.
+    b += f'<path d="M58 86 q67 -18 134 0 q-22 18 -67 18 q-45 0 -67 -18 Z" fill="url(#cloth)" opacity="0.95" {OUTLINE}/>'
+    for x in (82, 112, 142, 172):
+        b += f'<path d="M{x} 72 q-2 16 0 31" stroke="{P["red"]}" stroke-width="2" opacity="0.28"/>'
+    for y in (82, 94):
+        b += f'<path d="M62 {y} q63 14 126 0" stroke="{P["red"]}" stroke-width="2" opacity="0.28" fill="none"/>'
+    # Plate + cutlery makes it read as a restaurant table even when tiny.
+    b += f'<ellipse cx="125" cy="84" rx="28" ry="10" fill="{P["cream"]}" {OUTLINE}/>'
+    b += f'<ellipse cx="125" cy="82" rx="18" ry="6" fill="#e8d5b0"/>'
+    b += f'<path d="M92 78 q-6 10 0 20 M158 76 q5 10 0 22" stroke="{P["line"]}" stroke-width="2.5" fill="none" opacity="0.45" stroke-linecap="round"/>'
     return svg(W, H, b, d)
 
 # ============================ ITEMS ============================
@@ -434,15 +459,26 @@ def tile_berryfield():
 
 # ============================ PADS ============================
 def pad(kind):
-    W, H = 200, 120
+    W, H = 210, 140
     if kind == "build":
         c0, c1 = P["coin"], P["coin_d"]
+        icon = "hammer"
     else:
         c0, c1 = "#6fa8e8", "#4a86d0"
-    d = rad("pad", c0, c1)
-    b = f'<ellipse cx="100" cy="60" rx="92" ry="44" fill="url(#pad)" opacity="0.5"/>'
-    b += f'<ellipse cx="100" cy="60" rx="92" ry="44" fill="none" stroke="{c1}" stroke-width="4" stroke-dasharray="14 10" opacity="0.9"/>'
-    b += f'<ellipse cx="100" cy="60" rx="66" ry="30" fill="none" stroke="{c0}" stroke-width="3" opacity="0.7"/>'
+        icon = "paw"
+    d = rad("pad", c0, c1) + lin("sign", P["wood_l"], P["wood_dd"])
+    b = f'<ellipse cx="105" cy="86" rx="94" ry="42" fill="url(#pad)" opacity="0.42"/>'
+    b += f'<ellipse cx="105" cy="86" rx="94" ry="42" fill="none" stroke="{c1}" stroke-width="4" stroke-dasharray="14 10" opacity="0.86"/>'
+    b += f'<rect x="50" y="22" width="110" height="48" rx="12" fill="url(#sign)" {OUTLINE}/>'
+    b += f'<rect x="70" y="66" width="12" height="32" rx="4" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<rect x="128" y="66" width="12" height="32" rx="4" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    if icon == "hammer":
+        b += f'<path d="M86 48 l28 -20 l10 10 l-30 20 Z" fill="{c0}" {OUTLINE}/>'
+        b += f'<path d="M114 54 l22 22" stroke="{P["cream"]}" stroke-width="7" fill="none" stroke-linecap="round"/>'
+    else:
+        b += f'<circle cx="105" cy="48" r="12" fill="{c0}" {OUTLINE}/>'
+        for (x, y) in [(88, 42), (97, 34), (113, 34), (122, 42)]:
+            b += f'<circle cx="{x}" cy="{y}" r="5" fill="{c0}" {OUTLINE}/>'
     return svg(W, H, b, d)
 
 # ============================ PROPS ============================
