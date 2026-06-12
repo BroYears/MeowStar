@@ -82,11 +82,11 @@ namespace Nyangsta.Arcade
             var stack = player.GetComponent<StackHolder>();
 
             // ---- Fish line (active from the start) ----
-            var fishGather = MakeGatherZone(root.transform, "GatherZone_Fish", "Fish", fishPrefab, new Vector3(-6.6f, 0.08f, -1.6f));
+            var fishGather = MakeGatherZone(root.transform, "GatherZone_Fish", "item_fish", fishPrefab, new Vector3(-6.6f, 0.08f, -1.6f));
             var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.2f, 0f, -1.6f));
 
             // ---- Berry line (built later via a build zone) ----
-            var berryGather = MakeGatherZone(root.transform, "GatherZone_Berry", "Berry", berryPrefab, new Vector3(-6.6f, 0.08f, 3.6f));
+            var berryGather = MakeGatherZone(root.transform, "GatherZone_Berry", "item_berry", berryPrefab, new Vector3(-6.6f, 0.08f, 3.6f));
             var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(-1.2f, 0f, 1.8f));
             // The berry line is locked behind a build zone below (grouped + deactivated there).
 
@@ -179,7 +179,7 @@ namespace Nyangsta.Arcade
             return player;
         }
 
-        private GatherZone MakeGatherZone(Transform parent, string name, string label, ArcadeStackItem itemPrefab, Vector3 pos)
+        private GatherZone MakeGatherZone(Transform parent, string name, string iconKey, ArcadeStackItem itemPrefab, Vector3 pos)
         {
             var zone = MakeZone(name, parent, pos, new Vector3(1.45f, 0.05f, 1.45f), new Color(0.25f, 0.75f, 1f, 0.5f));
             var spawn = new GameObject("Spawn").transform;
@@ -187,7 +187,9 @@ namespace Nyangsta.Arcade
             spawn.localPosition = new Vector3(0f, 0.55f, 0f);
             var gather = zone.AddComponent<GatherZone>();
             gather.Configure(itemPrefab, 0.45f, spawn);
-            MakeLabel(label, zone.transform, new Vector3(0f, 0.2f, -1.2f));
+            // Icon bubble shows what this spot yields (replaces the graybox text label).
+            var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.35f, -0.5f), 0.8f, 0.7f);
+            bubble.SetIcon(ArcadeSprites.Get(iconKey), 0.4f, new Vector2(0f, 0.06f));
             return gather;
         }
 
@@ -218,7 +220,10 @@ namespace Nyangsta.Arcade
             // Facility sprite shakes while a dish is actually cooking.
             if (facilityBb != null)
                 facilityBb.gameObject.AddComponent<SpriteMotionAnimator>().ConfigureFacility(() => cook.IsCooking);
-            MakeLabel(label, zone.transform, new Vector3(0f, 0.2f, -0.92f));
+            // Dish icon bubble over the cook zone (replaces the graybox text label).
+            string dishKey = input == ArcadeItemType.Berry ? "item_juice" : "item_grilledfish";
+            var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+            bubble.SetIcon(ArcadeSprites.Get(dishKey), 0.4f, new Vector2(0f, 0.06f));
             return cook;
         }
 
@@ -243,7 +248,8 @@ namespace Nyangsta.Arcade
 
             var table = zone.AddComponent<TableZone>();
             table.Configure(seat, money, moneyPrefab);
-            MakeLabel("Table", tableRoot.transform, new Vector3(0f, 0.15f, -1.55f));
+            var bubble = WorldBubble.Create(tableRoot.transform, new Vector3(0f, 0.9f, -1.35f), 0.95f, 0.62f);
+            bubble.SetTitle("테이블", 28, new Vector2(0f, 0.05f));
 
             tableRoot.SetActive(active);
             return table;
@@ -253,11 +259,24 @@ namespace Nyangsta.Arcade
         {
             var zone = MakeZone(name, parent, pos, new Vector3(1.15f, 0.05f, 1.15f), new Color(1f, 0.9f, 0.25f, 0.62f));
             AttachPad(zone, "pad_build", 1.7f);
-            var label = MakeLabel($"{displayName}\n{cost:N0}G", zone.transform, new Vector3(0f, 0.25f, -0.95f));
+            var bubble = MakeCostBubble(zone.transform, displayName, cost);
             var build = zone.AddComponent<BuildZone>();
-            build.Configure(cost, 5, 0.08f, target, label, displayName);
+            build.Configure(cost, 5, 0.08f, target, bubble, displayName);
             build.BindProgress(progress, name);
             if (progress.IsComplete(name)) build.RestoreCompleted();
+        }
+
+        /// <summary>
+        /// Bubble for build/hire pads: facility name on top, coin icon + remaining cost
+        /// below. The zone scripts refresh the value text while gold drains.
+        /// </summary>
+        private WorldBubble MakeCostBubble(Transform zone, string displayName, double cost)
+        {
+            var bubble = WorldBubble.Create(zone, new Vector3(0f, 1.3f, -0.1f), 1.5f, 0.95f);
+            bubble.SetTitle(displayName, 30, new Vector2(0f, 0.24f));
+            bubble.SetIcon(ArcadeSprites.Get("money"), 0.26f, new Vector2(-0.38f, -0.08f));
+            bubble.SetValue($"{cost:N0}", 30, new Vector2(0.10f, -0.08f));
+            return bubble;
         }
 
         /// <summary>
@@ -301,14 +320,14 @@ namespace Nyangsta.Arcade
             string zoneId = $"HireZone_{cooked}";
             var zone = MakeZone(zoneId, parent, pos, new Vector3(1.15f, 0.05f, 1.15f), new Color(0.4f, 0.7f, 1f, 0.62f));
             AttachPad(zone, "pad_hire", 1.7f);
-            var label = MakeLabel($"{displayName}\n{cost:N0}G", zone.transform, new Vector3(0f, 0.25f, -0.95f));
+            var bubble = MakeCostBubble(zone.transform, displayName, cost);
 
             var spawn = new GameObject("StaffSpawn").transform;
             spawn.SetParent(zone.transform);
             spawn.position = staffSpawn;
 
             var hire = zone.AddComponent<HireZone>();
-            hire.Configure(cost, 8, label, gather, cook, tables, raw, cooked, spawn, displayName);
+            hire.Configure(cost, 8, bubble, gather, cook, tables, raw, cooked, spawn, displayName);
             hire.BindProgress(progress, zoneId);
             if (progress.IsComplete(zoneId)) hire.RestoreCompleted();
         }
@@ -425,11 +444,12 @@ namespace Nyangsta.Arcade
             // Walk bounce/lean; the source defaults to the parent capsule on the clone.
             bodyGo.AddComponent<SpriteMotionAnimator>();
 
-            var label = MakeLabel("Order", go.transform, new Vector3(0f, 1.55f, 0f));
-            label.fontSize = 42;
+            // Order bubble (food icon + count) floats above the head; the customer
+            // script swaps its contents per state and drives the patience ring.
+            var bubble = WorldBubble.Create(go.transform, new Vector3(0f, 1.55f, 0f), 0.95f, 0.8f);
             var customer = go.AddComponent<ArcadeCustomer>();
             customer.Configure(ArcadeItemType.GrilledFish, 1, 10, 30f);
-            customer.SetLabel(label);
+            customer.SetBubble(bubble);
             customer.SetBodySprite(bodySr);
 
             go.SetActive(false);

@@ -12,7 +12,7 @@ namespace Nyangsta.Arcade
         [SerializeField] private double drainPerTick = 5;
         [SerializeField] private float tickInterval = 0.1f;
         [SerializeField] private GameObject targetToActivate;
-        [SerializeField] private TextMesh costLabel;
+        [SerializeField] private WorldBubble costBubble;
         [SerializeField] private string displayName = "새 시설";
 
         private double _paid;
@@ -26,13 +26,13 @@ namespace Nyangsta.Arcade
         public double RemainingCost => System.Math.Max(0, totalCost - _paid);
         public bool IsComplete => _completed || _paid >= totalCost;
 
-        public void Configure(double cost, double tick, float interval, GameObject target, TextMesh label, string name)
+        public void Configure(double cost, double tick, float interval, GameObject target, WorldBubble bubble, string name)
         {
             totalCost = System.Math.Max(1, cost);
             drainPerTick = System.Math.Max(1, tick);
             tickInterval = Mathf.Max(0.02f, interval);
             targetToActivate = target;
-            costLabel = label;
+            costBubble = bubble;
             displayName = string.IsNullOrWhiteSpace(name) ? displayName : name;
             if (targetToActivate != null) targetToActivate.SetActive(false);
             UpdateLabel();
@@ -102,8 +102,8 @@ namespace Nyangsta.Arcade
 
         private void UpdateLabel()
         {
-            if (costLabel != null)
-                costLabel.text = $"{displayName}\n{RemainingCost:N0}G";
+            if (costBubble != null)
+                costBubble.SetValue($"{RemainingCost:N0}");
         }
 
         private static bool IsPlayer(StackHolder agent)

@@ -15,7 +15,7 @@ namespace Nyangsta.Arcade
         [SerializeField] private double totalCost = 150;
         [SerializeField] private double drainPerTick = 8;
         [SerializeField] private float tickInterval = 0.1f;
-        [SerializeField] private TextMesh costLabel;
+        [SerializeField] private WorldBubble costBubble;
         [SerializeField] private string displayName = "직원 고용";
 
         private GatherZone _gatherZone;
@@ -40,7 +40,7 @@ namespace Nyangsta.Arcade
         public void Configure(
             double cost,
             double tick,
-            TextMesh label,
+            WorldBubble bubble,
             GatherZone gather,
             CookStation cook,
             TableZone[] tables,
@@ -51,7 +51,7 @@ namespace Nyangsta.Arcade
         {
             totalCost = System.Math.Max(1, cost);
             drainPerTick = System.Math.Max(1, tick);
-            costLabel = label;
+            costBubble = bubble;
             displayName = string.IsNullOrWhiteSpace(name) ? displayName : name;
             _gatherZone = gather;
             _cookStation = cook;
@@ -172,10 +172,10 @@ namespace Nyangsta.Arcade
 
         private void UpdateLabel()
         {
-            if (costLabel != null)
-                costLabel.text = IsFacilityReady()
-                    ? $"{displayName}\n{RemainingCost:N0}G"
-                    : $"{displayName}\n잠김";
+            if (costBubble == null) return;
+            bool ready = IsFacilityReady();
+            costBubble.SetIconVisible(ready);
+            costBubble.SetValue(ready ? $"{RemainingCost:N0}" : "잠김");
         }
 
         private bool IsFacilityReady()
