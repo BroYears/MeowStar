@@ -15,6 +15,10 @@ namespace Nyangsta.Arcade
     {
         [SerializeField] private float radius = 130f;
         [SerializeField, Range(0f, 0.5f)] private float deadZone = 0.12f;
+        // Top fraction of the screen reserved for the HUD; presses that start there
+        // never grab the stick, so reading/tapping the gold/stack pills and the goal
+        // panel can't accidentally drive the player.
+        [SerializeField, Range(0f, 0.6f)] private float hudReserveTop = 0.35f;
 
         private bool _active;
         private int _pointerId = -1;
@@ -81,11 +85,15 @@ namespace Nyangsta.Arcade
 
         private void UpdateFromPointer(Vector2 screenPos, bool pressedThisFrame, int pointer)
         {
-            // Only claim presses that start on the left half of the screen, so the
-            // right half stays free for future buttons (jump, interact, etc.).
+            // Only claim presses that start on the lower-left of the screen: the right
+            // half stays free for future buttons (jump, interact, etc.), and the top
+            // band stays free for the HUD so its widgets don't double as a move pad.
             if (!_active)
             {
-                if (!pressedThisFrame || screenPos.x > Screen.width * 0.5f) return;
+                if (!pressedThisFrame ||
+                    screenPos.x > Screen.width * 0.5f ||
+                    screenPos.y > Screen.height * (1f - hudReserveTop) ||
+                    !Screen.safeArea.Contains(screenPos)) return;
                 _active = true;
                 _pointerId = pointer;
                 _origin = screenPos;
