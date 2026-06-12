@@ -134,11 +134,13 @@ namespace Nyangsta.Arcade
             MakeProp(deco.transform, "lantern", new Vector3(-3.4f, 0f, -1.0f), 1.3f);
 
             var hud = new GameObject("ArcadeHUD");
-            hud.AddComponent<ArcadeHUD>().Configure(stack);
+            var hudView = hud.AddComponent<ArcadeHUD>();
+            hudView.Configure(stack);
 
             // Visible mobile joystick, wired into the player controller.
             var joyGo = new GameObject("ArcadeJoystick");
             var joystick = joyGo.AddComponent<ArcadeJoystick>();
+            joystick.AttachVisual(hudView.OverlayLayer);
             player.GetComponent<ArcadePlayerController>().Configure(joystick);
 
             var cam = Camera.main;

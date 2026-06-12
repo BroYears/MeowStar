@@ -1,12 +1,15 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using Nyangsta.UI;
 
 namespace Nyangsta.Arcade
 {
     /// <summary>
     /// Visible floating joystick for mobile. Anchors to wherever the player first
     /// touches the left half of the screen, then reports a normalized direction.
-    /// Drawn with OnGUI so the prototype needs no Canvas/prefab setup.
+    /// Visuals are uGUI Images on the arcade HUD canvas (see <see cref="AttachVisual"/>);
+    /// input logic stays self-contained so the joystick works even without visuals.
     /// </summary>
     public class ArcadeJoystick : MonoBehaviour
     {
@@ -18,12 +21,33 @@ namespace Nyangsta.Arcade
         private Vector2 _origin;     // screen-space, y-up
         private Vector2 _knob;       // screen-space, y-up
 
-        private Texture2D _baseTex;
-        private Texture2D _knobTex;
+        private Canvas _canvas;
+        private RectTransform _baseRect;
+        private RectTransform _knobRect;
 
         /// <summary>Normalized move direction (x = right, y = forward). Zero when idle.</summary>
         public Vector2 Direction { get; private set; }
         public bool IsActive => _active;
+
+        /// <summary>Create the base/knob images under a HUD canvas layer.</summary>
+        public void AttachVisual(RectTransform layer)
+        {
+            if (layer == null) return;
+            _canvas = layer.GetComponentInParent<Canvas>();
+
+            var baseImg = UIFactory.Image("Img_JoystickBase", layer, UITheme.Circle,
+                new Color(1f, 1f, 1f, 0.18f));
+            baseImg.raycastTarget = false;
+            _baseRect = baseImg.rectTransform;
+
+            var knobImg = UIFactory.Image("Img_JoystickKnob", layer, UITheme.Circle,
+                new Color(1f, 0.55f, 0.24f, 0.85f));
+            knobImg.raycastTarget = false;
+            _knobRect = knobImg.rectTransform;
+
+            _baseRect.gameObject.SetActive(false);
+            _knobRect.gameObject.SetActive(false);
+        }
 
         private void Update()
         {
@@ -35,20 +59,24 @@ namespace Nyangsta.Arcade
                     touch.primaryTouch.position.ReadValue(),
                     touch.primaryTouch.press.wasPressedThisFrame,
                     pointer: 0);
-                return;
             }
-
-            var mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.isPressed)
+            else
             {
-                UpdateFromPointer(
-                    mouse.position.ReadValue(),
-                    mouse.leftButton.wasPressedThisFrame,
-                    pointer: 1);
-                return;
+                var mouse = Mouse.current;
+                if (mouse != null && mouse.leftButton.isPressed)
+                {
+                    UpdateFromPointer(
+                        mouse.position.ReadValue(),
+                        mouse.leftButton.wasPressedThisFrame,
+                        pointer: 1);
+                }
+                else
+                {
+                    Release();
+                }
             }
 
-            Release();
+            UpdateVisual();
         }
 
         private void UpdateFromPointer(Vector2 screenPos, bool pressedThisFrame, int pointer)
@@ -80,42 +108,28 @@ namespace Nyangsta.Arcade
             Direction = Vector2.zero;
         }
 
-        private void OnGUI()
+        private void UpdateVisual()
         {
+            if (_baseRect == null) return;
+
+            if (_baseRect.gameObject.activeSelf != _active)
+            {
+                _baseRect.gameObject.SetActive(_active);
+                _knobRect.gameObject.SetActive(_active);
+            }
             if (!_active) return;
 
-            _baseTex ??= MakeCircleTex(new Color(1f, 1f, 1f, 0.18f));
-            _knobTex ??= MakeCircleTex(new Color(1f, 0.55f, 0.24f, 0.85f));
+            // Screen-space-overlay canvas: RectTransform.position is in screen pixels,
+            // while sizeDelta is in scaled canvas units — divide by the scale factor.
+            float scale = _canvas != null ? _canvas.scaleFactor : 1f;
+            float baseSize = radius * 2f / scale;
+            float knobSize = radius * 0.9f / scale;
+            _baseRect.sizeDelta = new Vector2(baseSize, baseSize);
+            _knobRect.sizeDelta = new Vector2(knobSize, knobSize);
 
-            // GUI is y-down; flip from our y-up screen-space coords.
-            Vector2 baseCenter = new(_origin.x, Screen.height - _origin.y);
-            Vector2 knobCenter = baseCenter + new Vector2(Direction.x, -Direction.y) * radius;
-
-            float baseSize = radius * 2f;
-            GUI.DrawTexture(new Rect(baseCenter.x - radius, baseCenter.y - radius, baseSize, baseSize), _baseTex);
-
-            float knobR = radius * 0.45f;
-            GUI.DrawTexture(new Rect(knobCenter.x - knobR, knobCenter.y - knobR, knobR * 2f, knobR * 2f), _knobTex);
-        }
-
-        private static Texture2D MakeCircleTex(Color color, int size = 96)
-        {
-            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-            float r = size * 0.5f;
-            var clear = new Color(0f, 0f, 0f, 0f);
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - r + 0.5f;
-                float dy = y - r + 0.5f;
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                // Soft edge for a less jagged circle.
-                float a = Mathf.Clamp01((r - dist) / 2f);
-                tex.SetPixel(x, y, new Color(color.r, color.g, color.b, color.a * a));
-                if (a <= 0f) tex.SetPixel(x, y, clear);
-            }
-            tex.Apply();
-            return tex;
+            Vector2 knobCenter = _origin + Direction * radius;
+            _baseRect.position = _origin;
+            _knobRect.position = knobCenter;
         }
     }
 }
