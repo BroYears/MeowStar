@@ -20,6 +20,7 @@ namespace Nyangsta.Audio
         private AudioSource _music;
 
         private AudioClip _tap, _coin, _purchase, _levelUp, _error, _whoosh, _ding, _huntStart, _unlock;
+        private AudioClip _pop, _cookDone, _serve, _coinTick, _fanfare;
         private AudioClip _bgm;
 
         public bool Muted { get; private set; }
@@ -61,6 +62,11 @@ namespace Nyangsta.Audio
         public void PlayDing()     => Play(_ding, 0.7f, UnityEngine.Random.Range(0.99f, 1.03f));
         public void PlayHuntStart()=> Play(_huntStart, 0.8f);
         public void PlayUnlock()   => Play(_unlock, 0.9f);
+        public void PlayPop()      => Play(_pop, 0.55f, UnityEngine.Random.Range(0.95f, 1.08f));
+        public void PlayCookDone() => Play(_cookDone, 0.75f, UnityEngine.Random.Range(0.98f, 1.03f));
+        public void PlayServe()    => Play(_serve, 0.8f, UnityEngine.Random.Range(0.98f, 1.04f));
+        public void PlayCoinTick() => Play(_coinTick, 0.4f, UnityEngine.Random.Range(0.96f, 1.06f));
+        public void PlayFanfare()  => Play(_fanfare, 0.9f);
 
         public bool ToggleMute()
         {
@@ -100,6 +106,11 @@ namespace Nyangsta.Audio
             _unlock    = Sequence("unlock", new[] { (784f, 0.1f), (1047f, 0.1f), (1319f, 0.28f) }, 0.5f);
             _error     = Square("error", 150f, 0.18f, 0.4f);
             _whoosh    = Noise("whoosh", 0.16f, 0.5f);
+            _pop       = Bell("pop", new[] { 740f, 1480f }, 0.06f, 0.55f);
+            _cookDone  = Sequence("cookdone", new[] { (1175f, 0.06f), (1568f, 0.18f) }, 0.5f);
+            _serve     = Sequence("serve", new[] { (1047f, 0.06f), (1319f, 0.06f), (1568f, 0.16f) }, 0.5f);
+            _coinTick  = Bell("cointick", new[] { 1568f }, 0.045f, 0.45f);
+            _fanfare   = Sequence("fanfare", new[] { (784f, 0.08f), (988f, 0.08f), (1175f, 0.08f), (1568f, 0.26f) }, 0.5f);
             _bgm       = MusicBox();
         }
 
@@ -228,6 +239,11 @@ namespace Nyangsta.Audio
         public static void Ding()      => SfxManager.Instance?.PlayDing();
         public static void HuntStart() => SfxManager.Instance?.PlayHuntStart();
         public static void Unlock()    => SfxManager.Instance?.PlayUnlock();
+        public static void Pop()       => SfxManager.Instance?.PlayPop();
+        public static void CookDone()  => SfxManager.Instance?.PlayCookDone();
+        public static void Serve()     => SfxManager.Instance?.PlayServe();
+        public static void CoinTick()  => SfxManager.Instance?.PlayCoinTick();
+        public static void Fanfare()   => SfxManager.Instance?.PlayFanfare();
         public static bool ToggleMute()=> SfxManager.Instance != null && SfxManager.Instance.ToggleMute();
         public static bool IsMuted     => SfxManager.Instance != null && SfxManager.Instance.Muted;
     }

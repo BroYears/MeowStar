@@ -50,6 +50,7 @@ namespace Nyangsta.Arcade
             var col = dish.GetComponent<Collider>();
             if (col != null) col.enabled = false;
             _outputs.Add(dish);
+            Nyangsta.Audio.Sfx.CookDone();
         }
 
         protected override void OnAgentStay(StackHolder agent, float dt)

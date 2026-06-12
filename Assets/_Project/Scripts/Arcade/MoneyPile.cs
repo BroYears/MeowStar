@@ -70,6 +70,7 @@ namespace Nyangsta.Arcade
             {
                 EconomyManager.Instance?.AddGold(amount);
                 Nyangsta.Audio.Sfx.Coin();
+                Nyangsta.Core.Haptics.Light();
                 Destroy(gameObject);
             }
         }

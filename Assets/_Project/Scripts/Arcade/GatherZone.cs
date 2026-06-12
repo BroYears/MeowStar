@@ -33,7 +33,7 @@ namespace Nyangsta.Arcade
             Vector3 pos = spawnPoint != null ? spawnPoint.position : transform.position + Vector3.up * 0.8f;
             var item = Instantiate(itemPrefab, pos, Quaternion.identity);
             item.gameObject.SetActive(true);
-            agent.Push(item);
+            if (agent.Push(item)) Nyangsta.Audio.Sfx.Pop();
         }
     }
 }

@@ -68,6 +68,7 @@ namespace Nyangsta.Arcade
             if (economy == null || !economy.TrySpendGold(tick)) return;
 
             _paid += tick;
+            Nyangsta.Audio.Sfx.CoinTick();
             UpdateLabel();
             if (_paid >= totalCost) Complete();
         }
@@ -91,6 +92,8 @@ namespace Nyangsta.Arcade
         private void Complete()
         {
             _completed = true;
+            Nyangsta.Audio.Sfx.Fanfare();
+            Nyangsta.Core.Haptics.Medium();
             if (targetToActivate != null) targetToActivate.SetActive(true);
             if (_progress != null && _progress.MarkComplete(_zoneId))
                 Save.SaveManager.Instance?.Save();

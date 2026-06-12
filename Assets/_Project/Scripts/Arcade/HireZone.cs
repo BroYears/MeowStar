@@ -91,6 +91,7 @@ namespace Nyangsta.Arcade
             if (economy == null || !economy.TrySpendGold(tick)) return;
 
             _paid += tick;
+            Nyangsta.Audio.Sfx.CoinTick();
             UpdateLabel();
             if (_paid >= totalCost) Hire();
         }
@@ -114,6 +115,8 @@ namespace Nyangsta.Arcade
         private void Hire()
         {
             _hired = true;
+            Nyangsta.Audio.Sfx.Fanfare();
+            Nyangsta.Core.Haptics.Medium();
             SpawnStaff();
             if (_progress != null && _progress.MarkComplete(_zoneId))
                 Save.SaveManager.Instance?.Save();

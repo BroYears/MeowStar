@@ -55,6 +55,7 @@ namespace Nyangsta.Arcade
             {
                 var dish = agent.Pop();
                 if (dish != null) Destroy(dish.gameObject);
+                Nyangsta.Audio.Sfx.Serve();
             }
         }
     }
