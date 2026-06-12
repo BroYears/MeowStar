@@ -166,7 +166,9 @@ namespace Nyangsta.Arcade
             cc.center = new Vector3(0f, 0.86f, 0f);
 
             // Chef-cat sprite stands on the ground; capsule pivot is centered so feet are at -h/2.
-            AttachStandingSprite(player, "player", 2.0f, footOffsetY: -0.875f, bias: 0);
+            var playerBb = AttachStandingSprite(player, "player", 2.0f, footOffsetY: -0.875f, bias: 0);
+            if (playerBb != null)
+                playerBb.gameObject.AddComponent<SpriteMotionAnimator>().ConfigureActor(player.transform);
 
             player.AddComponent<ArcadePlayerController>();
             var stack = player.AddComponent<StackHolder>();
@@ -201,7 +203,7 @@ namespace Nyangsta.Arcade
             string facilityKey = input == ArcadeItemType.Berry ? "juicer" : "grill";
             var facility = new GameObject("FacilitySprite");
             facility.transform.SetParent(stationRoot.transform, false);
-            AttachStandingSprite(facility, facilityKey, 1.7f, footOffsetY: 0f, bias: 0);
+            var facilityBb = AttachStandingSprite(facility, facilityKey, 1.7f, footOffsetY: 0f, bias: 0);
 
             var zone = MakeZone($"CookZone_{label}", stationRoot.transform, new Vector3(0f, 0.08f, -0.9f), new Vector3(1.35f, 0.05f, 1.0f), new Color(1f, 0.65f, 0.2f, 0.55f), true);
             var slots = new Transform[3];
@@ -213,6 +215,9 @@ namespace Nyangsta.Arcade
             }
             var cook = zone.AddComponent<CookStation>();
             cook.Configure(input, dishPrefab, 2f, 5, slots);
+            // Facility sprite shakes while a dish is actually cooking.
+            if (facilityBb != null)
+                facilityBb.gameObject.AddComponent<SpriteMotionAnimator>().ConfigureFacility(() => cook.IsCooking);
             MakeLabel(label, zone.transform, new Vector3(0f, 0.2f, -0.92f));
             return cook;
         }
@@ -417,6 +422,8 @@ namespace Nyangsta.Arcade
             bodySr.sprite = ArcadeSprites.GetGrounded("cust_rabbit");
             if (bodySr.sprite != null) ScaleToHeight(bodySr, 1.5f);
             bodyGo.AddComponent<SpriteBillboard>().Init(true, true, 0);
+            // Walk bounce/lean; the source defaults to the parent capsule on the clone.
+            bodyGo.AddComponent<SpriteMotionAnimator>();
 
             var label = MakeLabel("Order", go.transform, new Vector3(0f, 1.55f, 0f));
             label.fontSize = 42;

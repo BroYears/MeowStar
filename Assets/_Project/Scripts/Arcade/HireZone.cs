@@ -147,6 +147,7 @@ namespace Nyangsta.Arcade
                 if (h > 0f) spriteGo.transform.localScale = Vector3.one * (1.9f / h);
             }
             spriteGo.AddComponent<SpriteBillboard>().Init(true, true, 0);
+            spriteGo.AddComponent<SpriteMotionAnimator>().ConfigureActor(go.transform);
 
             // Trigger collider so the staff fires zone OnTriggerStay like the player does.
             var capsule = go.GetComponent<CapsuleCollider>();

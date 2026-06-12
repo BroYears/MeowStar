@@ -9,6 +9,10 @@ namespace Nyangsta.Arcade
     /// </summary>
     public class StackHolder : MonoBehaviour
     {
+        // Freshly picked items fly to the stack along a short sin arc instead of a straight line.
+        private const float PICKUP_ARC_DURATION = 0.2f;
+        private const float PICKUP_ARC_HEIGHT = 0.6f;
+
         [SerializeField] private int capacity = 3;
         [SerializeField] private Transform stackAnchor;
         [SerializeField] private float itemHeight = 0.42f;
@@ -38,6 +42,7 @@ namespace Nyangsta.Arcade
             item.gameObject.SetActive(true);
             item.transform.SetParent(null, true);
             item.followVelocity = Vector3.zero;
+            item.pickupTimer = 0f;
 
             var col = item.GetComponent<Collider>();
             if (col != null) col.enabled = false;
@@ -69,6 +74,12 @@ namespace Nyangsta.Arcade
                 if (item == null) continue;
 
                 Vector3 target = below + Vector3.up * (i == 0 ? 0f : itemHeight);
+                if (item.pickupTimer < PICKUP_ARC_DURATION)
+                {
+                    item.pickupTimer += Time.deltaTime;
+                    float t = Mathf.Clamp01(item.pickupTimer / PICKUP_ARC_DURATION);
+                    target.y += Mathf.Sin(t * Mathf.PI) * PICKUP_ARC_HEIGHT;
+                }
                 float smooth = followSmoothTime * (1f + i * 0.15f);
                 item.transform.position = Vector3.SmoothDamp(
                     item.transform.position, target, ref item.followVelocity, smooth);

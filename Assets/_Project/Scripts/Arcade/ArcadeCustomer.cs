@@ -56,6 +56,9 @@ namespace Nyangsta.Arcade
                 float s = 1.5f / h;
                 bodySprite.transform.localScale = new Vector3(s, s, s);
             }
+            // Let the procedural animator treat the resized scale as its rest pose.
+            var anim = bodySprite.GetComponent<SpriteMotionAnimator>();
+            if (anim != null) anim.CaptureBaseScale();
         }
 
         public void Init(TableZone table, Vector3 exitPoint)

@@ -23,5 +23,6 @@ namespace Nyangsta.Arcade
     {
         public ArcadeItemType type = ArcadeItemType.Fish;
         [HideInInspector] public Vector3 followVelocity;
+        [HideInInspector] public float pickupTimer; // reset on Push; drives the pickup arc
     }
 }

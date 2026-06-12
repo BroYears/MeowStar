@@ -19,6 +19,9 @@ namespace Nyangsta.Arcade
 
         public bool HasOutput => _outputs.Count > 0;
 
+        /// <summary>True while a dish is actually being worked on (drives the wobble FX).</summary>
+        public bool IsCooking => _inputBuffer > 0 && outputSlots != null && _outputs.Count < outputSlots.Length;
+
         public void Configure(
             ArcadeItemType requiredInput,
             ArcadeStackItem output,
