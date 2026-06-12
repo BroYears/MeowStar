@@ -150,6 +150,15 @@ namespace Nyangsta.Arcade
                 if (follow == null) follow = cam.gameObject.AddComponent<ArcadeCameraFollow>();
                 follow.Configure(player.transform);
             }
+
+            // First-session arrow guide (FTUE); skipped once completed and saved.
+            if (!saveData.arcadeTutorialDone)
+            {
+                var tutorial = new GameObject("ArcadeTutorialDirector");
+                tutorial.transform.SetParent(root.transform);
+                tutorial.AddComponent<ArcadeTutorialDirector>()
+                    .Configure(stack, fishGather.transform, grill.transform, tables[0].transform);
+            }
         }
 
         private GameObject MakePlayer(Transform parent)

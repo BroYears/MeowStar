@@ -48,6 +48,7 @@ namespace Nyangsta.Save
 
         public long lastQuitUnixTime;
         public bool adsRemoved;
+        public bool arcadeTutorialDone;
         public SettingsData settings = new();
     }
 }
