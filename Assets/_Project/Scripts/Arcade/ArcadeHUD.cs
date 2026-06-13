@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using Nyangsta.Core;
 using Nyangsta.Economy;
 using Nyangsta.UI;
@@ -19,6 +20,7 @@ namespace Nyangsta.Arcade
         private Canvas _canvas;
         private RectTransform _safeRoot;
         private RectTransform _overlayLayer;
+        private RectTransform _modalLayer;
         private Text _txtGold;
         private Text _txtStack;
         private Image _stackIcon;
@@ -42,6 +44,9 @@ namespace Nyangsta.Arcade
         /// <summary>Layer above the HUD widgets, used by the joystick visuals.</summary>
         public RectTransform OverlayLayer => _overlayLayer;
 
+        /// <summary>Top-most layer for modal popups (offline income, etc.).</summary>
+        public RectTransform ModalLayer => _modalLayer;
+
         public void Configure(StackHolder stack)
         {
             playerStack = stack;
@@ -49,8 +54,32 @@ namespace Nyangsta.Arcade
 
         private void Awake()
         {
+            EnsureEventSystem();   // arcade mode disables GameUIController, which used to own it
             BuildCanvas();
             BuildWidgets();
+        }
+
+        // The project ships only the Input System package, so clicks need its UI module.
+        // GameUIController creates this for the legacy UI, but that controller is disabled
+        // in arcade mode — without this the pause button and popups wouldn't take input.
+        private static void EnsureEventSystem()
+        {
+            if (FindAnyObjectByType<EventSystem>() != null) return;
+
+            var go = new GameObject("EventSystem", typeof(EventSystem));
+            DontDestroyOnLoad(go);
+
+            var moduleType = System.Type.GetType(
+                "UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+            if (moduleType != null)
+            {
+                var module = go.AddComponent(moduleType);
+                moduleType.GetMethod("AssignDefaultActions")?.Invoke(module, null);
+            }
+            else
+            {
+                go.AddComponent<StandaloneInputModule>();   // fallback (old input)
+            }
         }
 
         private void Update()
@@ -164,6 +193,10 @@ namespace Nyangsta.Arcade
             // Joystick (and future world bubbles) draw above the widgets.
             _overlayLayer = UIFactory.Rect("Overlay", _canvas.transform);
             UIFactory.FillParent(_overlayLayer);
+
+            // Modal layer sits last (top-most) so popups cover the HUD and joystick.
+            _modalLayer = UIFactory.Rect("Modal", _canvas.transform);
+            UIFactory.FillParent(_modalLayer);
         }
 
         private static string ItemName(ArcadeItemType type) => type switch

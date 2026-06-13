@@ -143,6 +143,11 @@ namespace Nyangsta.Arcade
             joystick.AttachVisual(hudView.OverlayLayer);
             player.GetComponent<ArcadePlayerController>().Configure(joystick);
 
+            // Offline income: hired staff earn while away; shows the settlement popup.
+            var idleGo = new GameObject("ArcadeIdleService");
+            idleGo.transform.SetParent(root.transform);
+            idleGo.AddComponent<ArcadeIdleService>().Configure(hudView.ModalLayer);
+
             var cam = Camera.main;
             if (cam != null)
             {
