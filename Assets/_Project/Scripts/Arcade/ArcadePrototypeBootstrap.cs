@@ -255,7 +255,9 @@ namespace Nyangsta.Arcade
             CookStation cook, SpriteBillboard facility, ArcadeUpgradeService upgrades)
         {
             var zone = MakeZone(zoneId, parent, pos, new Vector3(1.0f, 0.05f, 1.0f), new Color(0.45f, 0.8f, 1f, 0.6f));
-            AttachPad(zone, "pad_build", 1.5f);   // reuse the build pad art (no upgrade-specific sprite yet)
+            // Reuse the build pad art but tint it cool cyan so upgrade pads read apart
+            // from the warm-yellow build pads (no upgrade-specific sprite yet).
+            AttachPad(zone, "pad_build", 1.5f, new Color(0.55f, 0.85f, 1f, 1f));
 
             var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.1f), 1.5f, 0.95f);
             bubble.SetIcon(ArcadeSprites.Get("money"), 0.26f, new Vector2(-0.38f, -0.08f));
@@ -341,7 +343,7 @@ namespace Nyangsta.Arcade
         /// cylinder's flat non-uniform scale doesn't squash it; it still moves/hides with
         /// the zone's group because it shares the same parent transform.
         /// </summary>
-        private void AttachPad(GameObject zone, string key, float worldSize)
+        private void AttachPad(GameObject zone, string key, float worldSize, Color? tint = null)
         {
             HideMesh(zone);
             var sprite = ArcadeSprites.Get(key);
@@ -354,6 +356,7 @@ namespace Nyangsta.Arcade
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
+            if (tint.HasValue) sr.color = tint.Value;
             sr.sortingOrder = -100;
             float w = sprite.bounds.size.x;
             float s = w > 0f ? worldSize / w : 1f;

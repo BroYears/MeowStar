@@ -14,8 +14,11 @@ namespace Nyangsta.Arcade
     public class MapReveal : MonoBehaviour
     {
         [SerializeField] private float duration = 0.45f;
-        [SerializeField] private float startScale = 0.12f;
-        [SerializeField] private int dustCount = 8;
+        // Grouped targets (e.g. the berry line) pivot at the world origin, so scaling
+        // from near-zero would make their contents slide in from the map centre. A
+        // higher start keeps the pop while limiting that slide.
+        [SerializeField] private float startScale = 0.4f;
+        [SerializeField] private int dustCount = 9;
 
         private Vector3 _fullScale = Vector3.one;
 
@@ -27,9 +30,12 @@ namespace Nyangsta.Arcade
         public void PlayAnimated()
         {
             if (!gameObject.activeInHierarchy) { SnapInstant(); return; }
+            // Capture the burst centre while still at full scale; the coroutine shrinks
+            // the target on its first frame, which would skew a later bounds read.
+            Vector3 center = VisualCenter();
             StopAllCoroutines();
             StartCoroutine(Animate());
-            SpawnDust();
+            SpawnDust(center);
         }
 
         private IEnumerator Animate()
@@ -46,13 +52,24 @@ namespace Nyangsta.Arcade
             transform.localScale = _fullScale;
         }
 
+        // Bounds centre of the target's visible parts, projected to ground level — so the
+        // burst lands on the structure even when the pivot sits elsewhere (grouped targets).
+        private Vector3 VisualCenter()
+        {
+            var renderers = GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return transform.position;
+
+            Bounds b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) b.Encapsulate(renderers[i].bounds);
+            return new Vector3(b.center.x, transform.position.y, b.center.z);   // ground level
+        }
+
         // A short-lived ring of soft puffs kicked outward from the target's base.
-        private void SpawnDust()
+        private void SpawnDust(Vector3 center)
         {
             var sprite = UITheme.Glow;
             if (sprite == null || dustCount <= 0) return;
 
-            Vector3 center = transform.position;
             for (int i = 0; i < dustCount; i++)
             {
                 float ang = (Mathf.PI * 2f / dustCount) * i;
