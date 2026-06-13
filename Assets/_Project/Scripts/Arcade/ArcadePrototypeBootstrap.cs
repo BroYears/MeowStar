@@ -58,6 +58,7 @@ namespace Nyangsta.Arcade
             // Save-backed unlock progress; completed zones are restored at no cost below.
             var saveData = SaveManager.Instance != null ? SaveManager.Instance.Data : new SaveData();
             var progress = new ArcadeProgressService(saveData.arcadeCompletedZones);
+            var upgrades = new ArcadeUpgradeService(saveData.arcadeUpgradeLevels);
 
             var root = new GameObject("_ArcadeM1_World");
             var prefabs = new GameObject("_ArcadeRuntimePrefabs");
@@ -83,11 +84,12 @@ namespace Nyangsta.Arcade
 
             // ---- Fish line (active from the start) ----
             var fishGather = MakeGatherZone(root.transform, "GatherZone_Fish", "item_fish", fishPrefab, new Vector3(-6.6f, 0.08f, -1.6f));
-            var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.2f, 0f, -1.6f));
+            var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.2f, 0f, -1.6f), out var grillFacility);
+            MakeUpgradeZone(root.transform, "UpgradeZone_Grill", "그릴 강화", new Vector3(0.4f, 0.08f, -1.6f), grill, grillFacility, upgrades);
 
             // ---- Berry line (built later via a build zone) ----
             var berryGather = MakeGatherZone(root.transform, "GatherZone_Berry", "item_berry", berryPrefab, new Vector3(-6.6f, 0.08f, 3.6f));
-            var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(-1.2f, 0f, 1.8f));
+            var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(-1.2f, 0f, 1.8f), out var juicerFacility);
             // The berry line is locked behind a build zone below (grouped + deactivated there).
 
             // ---- Tables: table 1 open, tables 2 & 3 behind build zones ----
@@ -107,6 +109,8 @@ namespace Nyangsta.Arcade
             berryLine.transform.SetParent(root.transform);
             berryGather.transform.SetParent(berryLine.transform, true);
             juicer.transform.parent.SetParent(berryLine.transform, true);
+            // Juicer upgrade pad lives inside the group, so it locks/unlocks with the line.
+            MakeUpgradeZone(berryLine.transform, "UpgradeZone_Juicer", "주스기 강화", new Vector3(0.4f, 0.08f, 1.8f), juicer, juicerFacility, upgrades);
             berryLine.SetActive(false);
             MakeBuildZone(root.transform, "BuildZone_BerryLine", 80, berryLine, new Vector3(-3.6f, 0.08f, 3.2f), "베리 라인", progress);
 
@@ -207,7 +211,7 @@ namespace Nyangsta.Arcade
             return gather;
         }
 
-        private CookStation MakeGrill(Transform parent, string label, ArcadeStackItem dishPrefab, ArcadeItemType input, Vector3 pos)
+        private CookStation MakeGrill(Transform parent, string label, ArcadeStackItem dishPrefab, ArcadeItemType input, Vector3 pos, out SpriteBillboard facilitySprite)
         {
             // Body and zone share a root so the whole station can be hidden/moved
             // as one unit (e.g. while locked behind a build zone).
@@ -238,7 +242,34 @@ namespace Nyangsta.Arcade
             string dishKey = input == ArcadeItemType.Berry ? "item_juice" : "item_grilledfish";
             var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
             bubble.SetIcon(ArcadeSprites.Get(dishKey), 0.4f, new Vector2(0f, 0.06f));
+            facilitySprite = facilityBb;
             return cook;
+        }
+
+        /// <summary>
+        /// Repeatable upgrade pad next to a cook station: drains gold to raise the station's
+        /// level (faster cooking + bigger buffer) and swells the facility sprite a little
+        /// with each level so the growth reads on the map. Level is save-backed.
+        /// </summary>
+        private void MakeUpgradeZone(Transform parent, string zoneId, string displayName, Vector3 pos,
+            CookStation cook, SpriteBillboard facility, ArcadeUpgradeService upgrades)
+        {
+            var zone = MakeZone(zoneId, parent, pos, new Vector3(1.0f, 0.05f, 1.0f), new Color(0.45f, 0.8f, 1f, 0.6f));
+            AttachPad(zone, "pad_build", 1.5f);   // reuse the build pad art (no upgrade-specific sprite yet)
+
+            var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.1f), 1.5f, 0.95f);
+            bubble.SetIcon(ArcadeSprites.Get("money"), 0.26f, new Vector2(-0.38f, -0.08f));
+            bubble.SetValue("", 28, new Vector2(0.10f, -0.08f));   // position the cost text by the coin
+
+            Vector3 baseScale = facility != null ? facility.transform.localScale : Vector3.one;
+            var up = zone.AddComponent<UpgradeZone>();
+            up.Configure(displayName, 40, 1.6, 5, 6, bubble, level =>
+            {
+                cook.SetUpgradeLevel(level);
+                if (facility != null) facility.transform.localScale = baseScale * (1f + 0.06f * level);
+            });
+            up.BindProgress(upgrades, zoneId);
+            up.RestoreLevel();
         }
 
         private TableZone MakeTable(Transform parent, MoneyPile moneyPrefab, Vector3 pos, bool active)

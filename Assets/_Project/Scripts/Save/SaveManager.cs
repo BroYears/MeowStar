@@ -72,6 +72,7 @@ namespace Nyangsta.Save
             if (data.unlockedRegions == null) data.unlockedRegions = new();
             if (data.recruitedStaff == null) data.recruitedStaff = new();
             if (data.arcadeCompletedZones == null) data.arcadeCompletedZones = new();
+            if (data.arcadeUpgradeLevels == null) data.arcadeUpgradeLevels = new();
             if (data.settings == null) data.settings = new SettingsData();
 
             if (data.restaurantLevel < 1) data.restaurantLevel = 1;

@@ -12,6 +12,14 @@ namespace Nyangsta.Arcade
         [SerializeField] private Transform[] outputSlots;
         [SerializeField] private float transferInterval = 0.2f;
 
+        // Upgrade scaling (per level): cook time shrinks multiplicatively, buffer grows.
+        [SerializeField] private float cookTimePerLevel = 0.82f;
+        [SerializeField] private int bufferPerLevel = 2;
+        [SerializeField] private float minCookTime = 0.25f;
+
+        private float _baseCookTime;
+        private int _baseBuffer;
+
         private readonly List<ArcadeStackItem> _outputs = new();
         private int _inputBuffer;
         private float _cookTimer;
@@ -34,6 +42,18 @@ namespace Nyangsta.Arcade
             cookTime = Mathf.Max(0.1f, seconds);
             inputBufferMax = Mathf.Max(1, bufferMax);
             outputSlots = slots;
+
+            // Remember the level-0 values so upgrade levels scale from a fixed base.
+            _baseCookTime = cookTime;
+            _baseBuffer = inputBufferMax;
+        }
+
+        /// <summary>Apply a facility upgrade level: faster cooking and a bigger input buffer.</summary>
+        public void SetUpgradeLevel(int level)
+        {
+            level = Mathf.Max(0, level);
+            cookTime = Mathf.Max(minCookTime, _baseCookTime * Mathf.Pow(cookTimePerLevel, level));
+            inputBufferMax = _baseBuffer + bufferPerLevel * level;
         }
 
         private void Update()

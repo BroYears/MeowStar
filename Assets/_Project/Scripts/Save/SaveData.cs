@@ -45,6 +45,7 @@ namespace Nyangsta.Save
         public List<string> unlockedRegions = new() { "Forest" };
         public List<string> recruitedStaff = new();
         public List<string> arcadeCompletedZones = new();
+        public List<UpgradeLevel> arcadeUpgradeLevels = new();
 
         public long lastQuitUnixTime;
         public bool adsRemoved;
