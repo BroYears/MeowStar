@@ -307,6 +307,17 @@ namespace Nyangsta.Arcade
             var bubble = MakeCostBubble(zone.transform, displayName, cost);
             var build = zone.AddComponent<BuildZone>();
             build.Configure(cost, 5, 0.08f, target, bubble, displayName);
+
+            // "Map expands" reveal: capture the target's full scale now (it may be
+            // inactive, so Awake won't run) and let the build zone play/snap it.
+            if (target != null)
+            {
+                var reveal = target.GetComponent<MapReveal>();
+                if (reveal == null) reveal = target.AddComponent<MapReveal>();
+                reveal.Init(target.transform.localScale);
+                build.SetReveal(reveal);
+            }
+
             build.BindProgress(progress, name);
             if (progress.IsComplete(name)) build.RestoreCompleted();
         }

@@ -15,6 +15,8 @@ namespace Nyangsta.Arcade
         [SerializeField] private WorldBubble costBubble;
         [SerializeField] private string displayName = "새 시설";
 
+        [SerializeField] private MapReveal reveal;
+
         private double _paid;
         private float _timer;
         private bool _completed;
@@ -80,12 +82,16 @@ namespace Nyangsta.Arcade
             _zoneId = zoneId;
         }
 
+        /// <summary>Optional "map expands" reveal played when the target is unlocked.</summary>
+        public void SetReveal(MapReveal mapReveal) => reveal = mapReveal;
+
         /// <summary>Re-applies a previously saved completion: activates the target at no cost.</summary>
         public void RestoreCompleted()
         {
             _completed = true;
             _paid = totalCost;
             if (targetToActivate != null) targetToActivate.SetActive(true);
+            if (reveal != null) reveal.SnapInstant();   // already built: appear, don't replay
             gameObject.SetActive(false);
         }
 
@@ -95,6 +101,7 @@ namespace Nyangsta.Arcade
             Nyangsta.Audio.Sfx.Fanfare();
             Nyangsta.Core.Haptics.Medium();
             if (targetToActivate != null) targetToActivate.SetActive(true);
+            if (reveal != null) reveal.PlayAnimated();   // fresh unlock: bloom into the world
             if (_progress != null && _progress.MarkComplete(_zoneId))
                 Save.SaveManager.Instance?.Save();
             gameObject.SetActive(false);
