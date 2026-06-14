@@ -116,3 +116,11 @@ Thumbs.db
 
 # IDE settings
 .idea/
+
+# Local tooling and generated artifacts
+.mcp.json
+.venv-tools/
+.vscode/
+out_sprites/
+__pycache__/
+*.py[cod]

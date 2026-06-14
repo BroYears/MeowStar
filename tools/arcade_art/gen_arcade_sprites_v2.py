@@ -559,10 +559,10 @@ def lantern():
     b = f'<circle cx="50" cy="80" r="48" fill="{P["lantern"]}" opacity="0.18"/>' + b
     return svg(W, H, b, d)
 
-# World characters are emitted together so the player, staff, and every customer
-# share one transparent chibi sprite language in the runtime scene.
+# Player and staff now use PDF-concept cutouts directly in Resources/Arcade.
+# Keep this generator focused on the remaining SVG-native arcade sprites so a
+# refresh does not overwrite the higher-fidelity character art.
 SPRITES = {
-    "player": player, "staff": staff,
     "cust_rabbit": guest_rabbit, "cust_raccoon": guest_raccoon,
     "cust_fox": guest_fox, "cust_bear": guest_bear,
     "cust_penguin": guest_penguin, "cust_vipcat": guest_vipcat,
