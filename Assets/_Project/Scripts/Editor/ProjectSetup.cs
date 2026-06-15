@@ -29,6 +29,7 @@ namespace Nyangsta.EditorTools
     {
         private const string DataRoot = "Assets/_Project/Data";
         private const string ScenePath = "Assets/_Project/Scenes/Bootstrap.unity";
+        private const string RestaurantScenePath = "Assets/_Project/Scenes/Restaurant.unity";
 
         [MenuItem("Nyangsta/Setup/Generate Everything", priority = 0)]
         public static void GenerateEverything()
@@ -46,6 +47,82 @@ namespace Nyangsta.EditorTools
                 "Scenes/Bootstrap.unity 를 열고 Play 를 누르세요.\n" +
                 "조이스틱/마우스 드래그로 생선 채집 → 그릴 → 테이블 → 돈 줍기 → 건설까지 확인할 수 있습니다.", "확인");
             Debug.Log("[Nyangsta] Setup complete.");
+        }
+
+        [MenuItem("Nyangsta/Setup/Generate Restaurant Scene", priority = 1)]
+        public static void GenerateRestaurantScene()
+        {
+            EnsureFolders();
+            ImportArtAssets();
+            // 기존 GameDatabase 가 있으면 재사용(재생성 시 GUID 변경으로 아케이드 씬 참조가 깨지는 것 방지).
+            var db = AssetDatabase.LoadAssetAtPath<GameDatabase>($"{DataRoot}/GameDatabase.asset");
+            if (db == null) db = GenerateContent();
+            CreateRestaurantScene(db);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("냥스타 레스토랑 셋업",
+                "레스토랑(탭형) 씬이 생성되었습니다.\n\n" +
+                "Scenes/Restaurant.unity 를 열고 Play 를 누르세요.\n" +
+                "홈/사냥/업그레이드/이동/직원 탭 UI와 손님 서빙 루프가 실행됩니다.", "확인");
+            Debug.Log("[Nyangsta] Restaurant scene generated.");
+        }
+
+        /// <summary>
+        /// 레스토랑(탭형 타이쿤) 전용 씬. 아케이드 부트스트랩 대신 손님/사냥/방치 매니저를
+        /// 모두 배치하고 RestaurantView 를 추가한다. 탭 UI(GameUIController)는 GameUIBootstrap 이
+        /// 런타임에 자동 생성한다(씬에 ArcadePrototypeBootstrap 이 없으면 활성화됨).
+        /// </summary>
+        private static void CreateRestaurantScene(GameDatabase db)
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+
+            var managers = new GameObject("_Managers");
+            managers.AddComponent<SaveManager>();          // first (execution order enforced below)
+            var gm = managers.AddComponent<GameManager>();
+            managers.AddComponent<ProgressionManager>();
+            var eco = managers.AddComponent<EconomyManager>();
+            var hunt = managers.AddComponent<HuntingManager>();
+            var cust = managers.AddComponent<CustomerManager>();
+            managers.AddComponent<IdleIncomeManager>();
+            managers.AddComponent<AdManager>();
+            managers.AddComponent<UIManager>();
+            managers.AddComponent<SfxManager>();
+
+            // database 를 필요한 매니저에 모두 연결.
+            AssignField(gm, "database", db);
+            AssignField(eco, "database", db);
+            AssignField(hunt, "database", db);
+            AssignField(cust, "database", db);
+
+            // 식당 월드 비주얼(배경·셰프·손님). 탭 UI 는 GameUIBootstrap 이 런타임 자동 생성.
+            SetupCamera2D();
+            var view = new GameObject("_RestaurantView").AddComponent<RestaurantView>();
+            AssignField(view, "backgroundSprite",
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Art/Backgrounds/restaurant_bg.png"));
+            AssignField(view, "chefSprite",
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Art/Sprites/Characters/chef_nyastar.png"));
+
+            EditorSceneManager.SaveScene(scene, RestaurantScenePath);
+
+            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            if (!scenes.Exists(s => s.path == RestaurantScenePath))
+                scenes.Add(new EditorBuildSettingsScene(RestaurantScenePath, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+
+            SetExecutionOrder();
+        }
+
+        /// <summary>정면 2D 직교 카메라(레스토랑 뷰용).</summary>
+        private static void SetupCamera2D()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            cam.orthographic = true;
+            cam.orthographicSize = 5.4f;
+            cam.transform.position = new Vector3(0f, 0f, -10f);
+            cam.transform.rotation = Quaternion.identity;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0.68f, 0.83f, 0.93f);
         }
 
         // ------------------------------------------------------------------
