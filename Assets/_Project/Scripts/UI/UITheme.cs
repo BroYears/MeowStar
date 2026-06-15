@@ -80,7 +80,7 @@ namespace Nyangsta.UI
         }
 
         // ---------------------------------------------------------------- sprites
-        private static Sprite _square, _rounded, _roundedSoft, _circle, _ring, _glow, _bubble;
+        private static Sprite _square, _rounded, _roundedSoft, _circle, _ring, _glow, _bubble, _flame;
 
         /// <summary>Flat 1x1 white sprite (tint with Image.color).</summary>
         public static Sprite Square => _square != null ? _square : (_square = MakeSolid());
@@ -95,6 +95,7 @@ namespace Nyangsta.UI
         public static Sprite Ring => _ring != null ? _ring : (_ring = MakeRing(128, 0.16f));
         public static Sprite Glow => _glow != null ? _glow : (_glow = MakeGlow(128));
         public static Sprite Bubble => _bubble != null ? _bubble : (_bubble = MakeBubble(96));
+        public static Sprite Flame => _flame != null ? _flame : (_flame = MakeFlame(128));
 
         private static Sprite MakeSolid()
         {
@@ -224,6 +225,41 @@ namespace Nyangsta.UI
             float dy = Mathf.Abs(py + 0.5f - cy) - (hy - radius);
             dx = Mathf.Max(dx, 0f); dy = Mathf.Max(dy, 0f);
             return Mathf.Sqrt(dx * dx + dy * dy) - radius;
+        }
+
+        private static Sprite MakeFlame(int size)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            tex.wrapMode = TextureWrapMode.Clamp;
+            for (int y = 0; y < size; y++)
+            {
+                float vf = y / (float)(size - 1);
+                // Center curve: subtle S-curve warp
+                float centerX = 0.5f + 0.06f * Mathf.Sin(vf * Mathf.PI * 1.5f);
+                // Width curve: thick at bottom-middle, tapers to zero at top and bottom
+                float w = Mathf.Sin(vf * Mathf.PI) * (1f - vf * 0.75f) * 0.4f;
+                for (int x = 0; x < size; x++)
+                {
+                    float uf = x / (float)(size - 1);
+                    float d = Mathf.Abs(uf - centerX);
+                    float a = 0f;
+                    if (w > 0f)
+                    {
+                        float ratio = d / w;
+                        if (ratio < 1f)
+                        {
+                            a = Mathf.Clamp01(1f - ratio * ratio);
+                            // Soft fade at bottom (y close to 0)
+                            a *= Mathf.Clamp01(vf * 6f);
+                            // Soft fade at top (y close to 1)
+                            a *= Mathf.Clamp01((1f - vf) * 4f);
+                        }
+                    }
+                    tex.SetPixel(x, y, new Color(1f, 1f, 1f, a));
+                }
+            }
+            tex.Apply();
+            return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0f), 100f);
         }
     }
 }

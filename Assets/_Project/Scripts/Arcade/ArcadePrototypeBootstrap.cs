@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using Nyangsta.Core;
 using Nyangsta.Customer;
 using Nyangsta.Economy;
@@ -37,6 +39,8 @@ namespace Nyangsta.Arcade
         private static void EnsureArcadeBootstrap()
         {
             if (Object.FindAnyObjectByType<SaveManager>() == null) return;
+            // Exit early if the developer added an ArcadeSceneManager (Option A) to run their pre-designed scene.
+            if (Object.FindAnyObjectByType<ArcadeSceneManager>() != null) return;
             if (Object.FindAnyObjectByType<ArcadePrototypeBootstrap>() != null) return;
 
             var go = new GameObject("_ArcadeM1Bootstrap(Auto)");
@@ -77,7 +81,7 @@ namespace Nyangsta.Arcade
             MakeFloor("Ground", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 10f), "tile_grass", 17f, 10f, bias: -200, keepCollider: true);
             MakeFloor("River", root.transform, new Vector3(-6.6f, 0.03f, -1.2f), new Vector3(2.4f, 0.08f, 6.4f), "tile_water", 2.4f, 6.4f, bias: -150, keepCollider: false);
             MakeFloor("BerryField", root.transform, new Vector3(-6.6f, 0.04f, 3.6f), new Vector3(2.6f, 0.06f, 2.6f), "tile_berryfield", 2.6f, 2.6f, bias: -150, keepCollider: false);
-            MakeFloor("KitchenFloor", root.transform, new Vector3(-0.4f, 0.05f, 0f), new Vector3(5.2f, 0.08f, 6.4f), "tile_wood", 5.2f, 6.4f, bias: -120, keepCollider: false);
+            MakeFloor("KitchenFloor", root.transform, new Vector3(-0.4f, 0.05f, 0f), new Vector3(5.2f, 0.08f, 6.4f), "tile_path", 5.2f, 6.4f, bias: -120, keepCollider: false);
 
             var player = MakePlayer(root.transform);
             var stack = player.GetComponent<StackHolder>();
@@ -152,6 +156,9 @@ namespace Nyangsta.Arcade
             idleGo.transform.SetParent(root.transform);
             idleGo.AddComponent<ArcadeIdleService>().Configure(hudView.ModalLayer);
 
+            // Create leaf drift particles for a dynamic forest feel (Cats&Soup style)
+            CreateLeafDrift(root.transform);
+
             var cam = Camera.main;
             if (cam != null)
             {
@@ -200,6 +207,7 @@ namespace Nyangsta.Arcade
         private GatherZone MakeGatherZone(Transform parent, string name, string iconKey, ArcadeStackItem itemPrefab, Vector3 pos)
         {
             var zone = MakeZone(name, parent, pos, new Vector3(1.45f, 0.05f, 1.45f), new Color(0.25f, 0.75f, 1f, 0.5f));
+            AttachGlowPad(zone, new Color(0.35f, 0.75f, 1f, 0.35f), 1.6f); // teal glow
             var spawn = new GameObject("Spawn").transform;
             spawn.SetParent(zone.transform);
             spawn.localPosition = new Vector3(0f, 0.55f, 0f);
@@ -226,6 +234,29 @@ namespace Nyangsta.Arcade
             var facilityBb = AttachStandingSprite(facility, facilityKey, 1.7f, footOffsetY: 0f, bias: 0);
 
             var zone = MakeZone($"CookZone_{label}", stationRoot.transform, new Vector3(0f, 0.08f, -0.9f), new Vector3(1.35f, 0.05f, 1.0f), new Color(1f, 0.65f, 0.2f, 0.55f), true);
+            AttachGlowPad(zone, new Color(1f, 0.65f, 0.25f, 0.35f), 1.5f); // warm orange glow
+
+            // Add warm glowing fire light for the campfire grill (Cats&Soup style)
+            Light grillLight = null;
+            if (facilityKey == "grill")
+            {
+                var fireLightGo = new GameObject("GrillFireLight");
+                fireLightGo.transform.SetParent(stationRoot.transform, false);
+                fireLightGo.transform.localPosition = new Vector3(0f, 0.6f, -0.2f);
+                grillLight = fireLightGo.AddComponent<Light>();
+                grillLight.type = LightType.Point;
+                grillLight.color = new Color(1.0f, 0.5f, 0.15f); // intense fire orange
+                grillLight.range = 4.5f;
+                grillLight.intensity = 1.8f;
+                grillLight.shadows = LightShadows.None;
+                fireLightGo.AddComponent<LightFlicker>();
+            }
+
+            // We will NOT spawn the choppy, flat 2D flipbook fire animation,
+            // as it looks like a flat cardboard cutout. The volumetric 3D particle fire
+            // will handle all fire rendering beautifully.
+            SpriteFlipbookPlayer flipbook = null;
+
             var slots = new Transform[3];
             for (int i = 0; i < slots.Length; i++)
             {
@@ -243,6 +274,10 @@ namespace Nyangsta.Arcade
             var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
             bubble.SetIcon(ArcadeSprites.Get(dishKey), 0.4f, new Vector2(0f, 0.06f));
             facilitySprite = facilityBb;
+
+            // Add interactive sparks/steam/flames VFX during cooking
+            AddStationVFX(cook, stationRoot, input == ArcadeItemType.Berry, flipbook, grillLight);
+
             return cook;
         }
 
@@ -286,6 +321,7 @@ namespace Nyangsta.Arcade
             AttachStandingSprite(tableSprite, "table", 1.05f, footOffsetY: 0f, bias: 0);
 
             var zone = MakeZone("ServeZone", tableRoot.transform, new Vector3(0f, 0.08f, -0.88f), new Vector3(1.35f, 0.05f, 0.95f), new Color(0.55f, 1f, 0.45f, 0.55f), true);
+            AttachGlowPad(zone, new Color(0.45f, 0.85f, 0.45f, 0.35f), 1.5f); // mint green glow
             var seat = new GameObject("SeatPoint").transform;
             seat.SetParent(tableRoot.transform);
             seat.localPosition = new Vector3(0f, 0.95f, 0.82f);
@@ -572,12 +608,46 @@ namespace Nyangsta.Arcade
                 go.transform.position = new Vector3(pos.x, topY, pos.z);
                 go.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = sprite;
-                sr.drawMode = SpriteDrawMode.Tiled;
-                sr.tileMode = SpriteTileMode.Continuous;
-                sr.sortingOrder = bias;
-                sr.size = new Vector2(worldW, worldH); // world-unit footprint (scale stays 1)
+                if (name == "River")
+                {
+                    // TessellatedWater generates vertices at world size directly; keep localScale at 1.
+                    go.transform.localScale = Vector3.one;
+
+                    var waterMesh = go.AddComponent<TessellatedWater>();
+                    waterMesh.width = worldW;
+                    waterMesh.height = worldH;
+
+                    var riverMr = go.AddComponent<MeshRenderer>();
+                    var mat = new Material(Shader.Find("Sprites/Default"));
+                    mat.mainTexture = sprite.texture;
+                    
+                    // Enable texture repeating for tiling
+                    sprite.texture.wrapMode = TextureWrapMode.Repeat;
+                    
+                    // Map tiling scale relative to pixels per unit
+                    float tileW = worldW / (sprite.texture.width / sprite.pixelsPerUnit);
+                    float tileH = worldH / (sprite.texture.height / sprite.pixelsPerUnit);
+                    mat.mainTextureScale = new Vector2(tileW, tileH);
+                    riverMr.material = mat;
+
+                    // Add dynamic scrolling along river length (Y axis)
+                    var scroller = go.AddComponent<WaterScroller>();
+                    scroller.scrollSpeedX = 0.0f;
+                    scroller.scrollSpeedY = -0.04f; // Flow downward
+
+                    // Add soft circular ripple rings and glistening sparkles
+                    var rippleEff = go.AddComponent<WaterRippleEffect>();
+                    rippleEff.Configure(worldW, worldH, bias);
+                }
+                else
+                {
+                    var sr = go.AddComponent<SpriteRenderer>();
+                    sr.sprite = sprite;
+                    sr.drawMode = SpriteDrawMode.Tiled;
+                    sr.tileMode = SpriteTileMode.Continuous;
+                    sr.sortingOrder = bias;
+                    sr.size = new Vector2(worldW, worldH); // world-unit footprint (scale stays 1)
+                }
             }
             return box;
         }
@@ -684,6 +754,20 @@ namespace Nyangsta.Arcade
             sr.sprite = sprite;
             ScaleToHeight(sr, worldHeight);
             go.AddComponent<SpriteBillboard>().Init(true, true, 0);
+
+            // Add cozy warm light source to lantern props
+            if (key == "lantern")
+            {
+                var lightGo = new GameObject("LanternLight");
+                lightGo.transform.SetParent(go.transform, false);
+                lightGo.transform.localPosition = new Vector3(0f, worldHeight * 0.7f, -0.2f);
+                var pl = lightGo.AddComponent<Light>();
+                pl.type = LightType.Point;
+                pl.color = new Color(1.0f, 0.65f, 0.35f); // warm amber glow
+                pl.range = 3.5f;
+                pl.intensity = 1.8f;
+                pl.shadows = LightShadows.None;
+            }
         }
 
         private static void ScaleToHeight(SpriteRenderer sr, float worldHeight)
@@ -704,7 +788,7 @@ namespace Nyangsta.Arcade
                 cam.transform.position = new Vector3(-1.0f, 9.0f, -8.8f);
                 cam.transform.rotation = Quaternion.Euler(50f, 0f, 0f);
                 cam.clearFlags = CameraClearFlags.SolidColor;
-                cam.backgroundColor = new Color(0.69f, 0.86f, 0.95f); // soft sky
+                cam.backgroundColor = new Color(0.97f, 0.92f, 0.84f); // 따뜻한 크림 배경 (Cats&Soup 톤)
                 // Sort transparent sprites along the camera's view direction so any
                 // billboards sharing a sortingOrder still resolve front-to-back.
                 cam.transparencySortMode = TransparencySortMode.CustomAxis;
@@ -718,10 +802,56 @@ namespace Nyangsta.Arcade
                 light = go.AddComponent<Light>();
             }
             light.type = LightType.Directional;
-            light.intensity = 1.0f;
-            light.color = new Color(1f, 0.98f, 0.92f);
+            light.intensity = 1.05f;
+            light.color = new Color(1f, 0.95f, 0.86f);      // 따뜻한 햇살 톤
             light.shadows = LightShadows.None;              // flat storybook lighting
             light.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+
+            // 낮은 대비의 따뜻한 앰비언트 — 그림자가 어둡지 않게 떠서 아늑한 디오라마 느낌(Cats&Soup)
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.86f, 0.82f, 0.76f);
+
+            ApplyCozyPostFx();
+        }
+
+        /// <summary>
+        /// Cats&Soup 톤의 부드러운 포스트프로세싱을 런타임 구성 — 은은한 블룸 + 따뜻한 컬러그레이딩
+        /// + 살짝 비네팅. URP Volume/Profile 을 코드로 만들어 글로벌 적용한다.
+        /// </summary>
+        private void ApplyCozyPostFx()
+        {
+            var cam = Camera.main;
+            if (cam == null) return;
+            var camData = cam.GetUniversalAdditionalCameraData();
+            if (camData != null) camData.renderPostProcessing = true;
+
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+
+            var bloom = profile.Add<Bloom>();
+            bloom.intensity.Override(0.7f);     // 은은한 빛 번짐
+            bloom.threshold.Override(0.9f);
+            bloom.scatter.Override(0.75f);
+            bloom.tint.Override(new Color(1f, 0.96f, 0.9f));
+
+            var grade = profile.Add<ColorAdjustments>();
+            grade.postExposure.Override(0.1f);
+            grade.contrast.Override(-6f);       // 낮은 대비 → 말랑한 느낌
+            grade.saturation.Override(6f);      // 살짝 화사
+            grade.colorFilter.Override(new Color(1f, 0.97f, 0.92f)); // 따뜻한 필터
+
+            var wb = profile.Add<WhiteBalance>();
+            wb.temperature.Override(12f);       // 전체적으로 따뜻하게
+
+            var vignette = profile.Add<Vignette>();
+            vignette.intensity.Override(0.2f);
+            vignette.smoothness.Override(0.85f);
+            vignette.color.Override(new Color(0.32f, 0.24f, 0.16f));
+
+            var volGo = new GameObject("_CozyPostFX");
+            var vol = volGo.AddComponent<Volume>();
+            vol.isGlobal = true;
+            vol.priority = 10f;
+            vol.profile = profile;
         }
 
         private void CreateMaterials()
@@ -765,6 +895,847 @@ namespace Nyangsta.Arcade
             if (shader == null) shader = Shader.Find("Standard");
             var material = new Material(shader) { name = name, color = color };
             return material;
+        }
+
+        // ---- Procedural Visual FX & Lighting (Cats&Soup style) ----
+
+        private void AttachGlowPad(GameObject zone, Color color, float worldSize)
+        {
+            HideMesh(zone);
+            var go = new GameObject("GlowPad");
+            go.transform.SetParent(zone.transform.parent, false);
+            // Sits flat slightly above ground level to prevent Z-fighting
+            go.transform.position = new Vector3(zone.transform.position.x, 0.055f, zone.transform.position.z);
+            go.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = UITheme.Glow;
+            sr.color = color;
+            sr.sortingOrder = -90;
+
+            float w = UITheme.Glow.bounds.size.x;
+            float s = w > 0f ? worldSize / w : 1f;
+            go.transform.localScale = new Vector3(s, s, s);
+        }
+
+        private void CreateLeafDrift(Transform parent)
+        {
+            var go = new GameObject("LeafDriftParticles");
+            go.transform.SetParent(parent);
+            go.transform.position = new Vector3(-5f, 6f, 5f);
+            go.transform.rotation = Quaternion.Euler(45f, 135f, 0f);
+
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop();
+
+            var main = ps.main;
+            main.duration = 10f;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(10f, 14f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.4f, 1.0f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.25f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, 360f * Mathf.Deg2Rad);
+            main.gravityModifier = new ParticleSystem.MinMaxCurve(0.01f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 60;
+
+            var emission = ps.emission;
+            emission.enabled = true;
+            emission.rateOverTime = new ParticleSystem.MinMaxCurve(2.0f);
+
+            var shape = ps.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(16f, 1f, 16f);
+
+            var vel = ps.velocityOverLifetime;
+            vel.enabled = true;
+            vel.x = new ParticleSystem.MinMaxCurve(0.3f, 0.7f);
+            vel.y = new ParticleSystem.MinMaxCurve(-0.25f, -0.08f);
+            vel.z = new ParticleSystem.MinMaxCurve(-0.3f, -0.7f);
+
+            var rot = ps.rotationOverLifetime;
+            rot.enabled = true;
+            rot.z = new ParticleSystem.MinMaxCurve(-60f * Mathf.Deg2Rad, 60f * Mathf.Deg2Rad);
+
+            var col = ps.colorOverLifetime;
+            col.enabled = true;
+            var grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] {
+                    new GradientColorKey(new Color(0.68f, 0.88f, 0.58f), 0f), // Soft forest green
+                    new GradientColorKey(new Color(0.75f, 0.92f, 0.65f), 1f)
+                },
+                new GradientAlphaKey[] {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(0.8f, 0.15f),
+                    new GradientAlphaKey(0.8f, 0.85f),
+                    new GradientAlphaKey(0f, 1f)
+                }
+            );
+            col.color = grad;
+
+            var psr = go.GetComponent<ParticleSystemRenderer>();
+            psr.renderMode = ParticleSystemRenderMode.Billboard;
+            psr.material = new Material(Shader.Find("Sprites/Default"));
+            var leafSprite = ArcadeSprites.Get("item_berry"); // fallback colored sprite shape
+            if (leafSprite != null) psr.material.mainTexture = leafSprite.texture;
+
+            ps.Play();
+        }
+
+        private void AddStationVFX(CookStation station, GameObject stationRoot, bool isJuicer, SpriteFlipbookPlayer flipbook = null, Light grillLight = null)
+        {
+            // Sparks / Splash droplets
+            var sparksGo = new GameObject("VFX_Sparks");
+            sparksGo.transform.SetParent(stationRoot.transform, false);
+            sparksGo.transform.localPosition = new Vector3(0f, 0.6f, 0f);
+            sparksGo.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // Point up
+
+            var psSparks = sparksGo.AddComponent<ParticleSystem>();
+            psSparks.Stop();
+            var mainS = psSparks.main;
+            mainS.duration = 1f;
+            mainS.loop = true;
+            mainS.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
+            mainS.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3.2f);
+            mainS.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.12f);
+            mainS.gravityModifier = new ParticleSystem.MinMaxCurve(isJuicer ? 0.5f : -0.3f);
+            mainS.simulationSpace = ParticleSystemSimulationSpace.World;
+            mainS.maxParticles = 40;
+
+            var emitS = psSparks.emission;
+            emitS.enabled = false;
+            emitS.rateOverTime = new ParticleSystem.MinMaxCurve(18f);
+
+            var shapeS = psSparks.shape;
+            shapeS.enabled = true;
+            shapeS.shapeType = ParticleSystemShapeType.Cone;
+            shapeS.angle = 25f;
+            shapeS.radius = 0.18f;
+
+            if (!isJuicer)
+            {
+                var noiseS = psSparks.noise;
+                noiseS.enabled = true;
+                noiseS.strength = 0.35f;
+                noiseS.frequency = 3.5f;
+            }
+
+            var colS = psSparks.colorOverLifetime;
+            colS.enabled = true;
+            var gradS = new Gradient();
+            if (isJuicer)
+            {
+                // Berry juice droplets
+                gradS.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(0.92f, 0.32f, 0.6f), 0f),
+                        new GradientColorKey(new Color(1f, 0.62f, 0.8f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(1.0f, 0f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+            }
+            else
+            {
+                // Fire sparks
+                gradS.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(1.0f, 0.78f, 0.25f), 0f),
+                        new GradientColorKey(new Color(1.0f, 0.35f, 0.05f), 0.75f),
+                        new GradientColorKey(new Color(0.25f, 0.25f, 0.25f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(1.0f, 0f),
+                        new GradientAlphaKey(1.0f, 0.7f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+            }
+            colS.color = gradS;
+
+            var psrS = sparksGo.GetComponent<ParticleSystemRenderer>();
+            psrS.renderMode = ParticleSystemRenderMode.Billboard;
+            psrS.material = new Material(Shader.Find("Sprites/Default"));
+            var sparkSprite = ArcadeSprites.Get("money"); // small dot
+            if (sparkSprite != null) psrS.material.mainTexture = sparkSprite.texture;
+
+            psSparks.Play();
+
+            // Steam / Sweet bubbles
+            var steamGo = new GameObject("VFX_Steam");
+            steamGo.transform.SetParent(stationRoot.transform, false);
+            steamGo.transform.localPosition = new Vector3(0f, 0.7f, 0.1f);
+
+            var psSteam = steamGo.AddComponent<ParticleSystem>();
+            psSteam.Stop();
+            var mainM = psSteam.main;
+            mainM.duration = 2f;
+            mainM.loop = true;
+            mainM.startLifetime = new ParticleSystem.MinMaxCurve(1.5f, 2.0f);
+            mainM.startSpeed = new ParticleSystem.MinMaxCurve(0.25f, 0.5f);
+            mainM.startSize = new ParticleSystem.MinMaxCurve(isJuicer ? 0.18f : 0.2f, isJuicer ? 0.35f : 0.4f);
+            mainM.simulationSpace = ParticleSystemSimulationSpace.World;
+            mainM.maxParticles = 25;
+
+            var emitM = psSteam.emission;
+            emitM.enabled = false;
+            emitM.rateOverTime = new ParticleSystem.MinMaxCurve(isJuicer ? 4f : 8f);
+
+            var shapeM = psSteam.shape;
+            shapeM.enabled = true;
+            shapeM.shapeType = ParticleSystemShapeType.Sphere;
+            shapeM.radius = 0.25f;
+
+            var colM = psSteam.colorOverLifetime;
+            colM.enabled = true;
+            var gradM = new Gradient();
+            if (isJuicer)
+            {
+                // Sweet bubbles
+                gradM.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(1.0f, 0.9f, 0.95f), 0f),
+                        new GradientColorKey(new Color(0.95f, 0.78f, 0.88f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(0f, 0f),
+                        new GradientAlphaKey(0.6f, 0.2f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+            }
+            else
+            {
+                // Cozy grey cooking steam
+                gradM.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(0.94f, 0.94f, 0.94f), 0f),
+                        new GradientColorKey(new Color(0.88f, 0.88f, 0.88f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(0f, 0f),
+                        new GradientAlphaKey(0.25f, 0.25f),
+                        new GradientAlphaKey(0.25f, 0.75f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+            }
+            colM.color = gradM;
+
+            var szM = psSteam.sizeOverLifetime;
+            szM.enabled = true;
+            szM.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 1.6f)));
+
+            var psrM = steamGo.GetComponent<ParticleSystemRenderer>();
+            psrM.renderMode = ParticleSystemRenderMode.Billboard;
+            psrM.material = new Material(Shader.Find("Sprites/Default"));
+            var circleSprite = UITheme.Circle;
+            if (circleSprite != null) psrM.material.mainTexture = circleSprite.texture;
+
+            psSteam.Play();
+
+            // Soft Volumetric Flame particles (For the campfire grill)
+            ParticleSystem psFlames = null;
+            ParticleSystem psEmbers = null;
+            if (!isJuicer)
+            {
+                // 1. Embers (glowing coals at base)
+                var embersGo = new GameObject("VFX_Embers");
+                embersGo.transform.SetParent(stationRoot.transform, false);
+                embersGo.transform.localPosition = new Vector3(0f, 0.45f, -0.05f);
+                embersGo.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+
+                psEmbers = embersGo.AddComponent<ParticleSystem>();
+                psEmbers.Stop();
+                var mainE = psEmbers.main;
+                mainE.duration = 1f;
+                mainE.loop = true;
+                mainE.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
+                mainE.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.2f);
+                mainE.startSize = new ParticleSystem.MinMaxCurve(0.15f, 0.3f);
+                mainE.simulationSpace = ParticleSystemSimulationSpace.World;
+                mainE.maxParticles = 20;
+
+                var emitE = psEmbers.emission;
+                emitE.enabled = true;
+                emitE.rateOverTime = new ParticleSystem.MinMaxCurve(6f);
+
+                var shapeE = psEmbers.shape;
+                shapeE.enabled = true;
+                shapeE.shapeType = ParticleSystemShapeType.Circle;
+                shapeE.radius = 0.2f;
+
+                var colE = psEmbers.colorOverLifetime;
+                colE.enabled = true;
+                var gradE = new Gradient();
+                gradE.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(1.0f, 0.3f, 0f), 0f),
+                        new GradientColorKey(new Color(0.6f, 0.1f, 0f), 0.7f),
+                        new GradientColorKey(new Color(0.1f, 0.1f, 0.1f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(0f, 0f),
+                        new GradientAlphaKey(0.7f, 0.2f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+                colE.color = gradE;
+
+                var psrE = embersGo.GetComponent<ParticleSystemRenderer>();
+                psrE.renderMode = ParticleSystemRenderMode.Billboard;
+                psrE.material = new Material(Shader.Find("Sprites/Default"));
+                var glowSprite = UITheme.Glow;
+                if (glowSprite != null) psrE.material.mainTexture = glowSprite.texture;
+
+                psEmbers.Play();
+
+                // 2. Rising volumetric flame tongues
+                var flamesGo = new GameObject("VFX_Flames");
+                flamesGo.transform.SetParent(stationRoot.transform, false);
+                flamesGo.transform.localPosition = new Vector3(0f, 0.5f, -0.05f);
+                flamesGo.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+
+                psFlames = flamesGo.AddComponent<ParticleSystem>();
+                psFlames.Stop();
+                var mainF = psFlames.main;
+                mainF.duration = 1f;
+                mainF.loop = true;
+                mainF.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.8f);
+                mainF.startSpeed = new ParticleSystem.MinMaxCurve(0.8f, 1.4f);
+                mainF.startSize = new ParticleSystem.MinMaxCurve(0.3f, 0.55f);
+                mainF.startRotation = new ParticleSystem.MinMaxCurve(-12f * Mathf.Deg2Rad, 12f * Mathf.Deg2Rad);
+                mainF.simulationSpace = ParticleSystemSimulationSpace.World;
+                mainF.maxParticles = 40;
+
+                var emitF = psFlames.emission;
+                emitF.enabled = true;
+                emitF.rateOverTime = new ParticleSystem.MinMaxCurve(12f);
+
+                var shapeF = psFlames.shape;
+                shapeF.enabled = true;
+                shapeF.shapeType = ParticleSystemShapeType.Cone;
+                shapeF.angle = 12f;
+                shapeF.radius = 0.15f;
+
+                var colF = psFlames.colorOverLifetime;
+                colF.enabled = true;
+                var gradF = new Gradient();
+                gradF.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(1.0f, 1.0f, 0.9f), 0f),      // Hot core
+                        new GradientColorKey(new Color(1.0f, 0.55f, 0.05f), 0.3f),   // Orange body
+                        new GradientColorKey(new Color(0.9f, 0.12f, 0.02f), 0.7f),   // Red tip
+                        new GradientColorKey(new Color(0.2f, 0.15f, 0.15f), 1.0f)    // Soot
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(0f, 0f),
+                        new GradientAlphaKey(0.9f, 0.15f),
+                        new GradientAlphaKey(0.9f, 0.6f),
+                        new GradientAlphaKey(0f, 1.0f)
+                    }
+                );
+                colF.color = gradF;
+
+                var szF = psFlames.sizeOverLifetime;
+                szF.enabled = true;
+                var curveF = new AnimationCurve(new Keyframe(0f, 1.0f), new Keyframe(0.6f, 0.8f), new Keyframe(1f, 0f));
+                szF.size = new ParticleSystem.MinMaxCurve(1f, curveF);
+
+                // Enable Noise to make the flames dance
+                var noiseF = psFlames.noise;
+                noiseF.enabled = true;
+                noiseF.strength = 0.18f;
+                noiseF.frequency = 2.2f;
+                noiseF.octaveCount = 1;
+
+                var psrF = flamesGo.GetComponent<ParticleSystemRenderer>();
+                psrF.renderMode = ParticleSystemRenderMode.Billboard;
+                psrF.material = new Material(Shader.Find("Sprites/Default"));
+                
+                var flameSprite = UITheme.Flame;
+                if (flameSprite != null) psrF.material.mainTexture = flameSprite.texture;
+
+                psFlames.Play();
+            }
+
+            var vfx = stationRoot.AddComponent<CookStationVFX>();
+            vfx.Init(station, psSparks, psSteam, psFlames, flipbook, psEmbers, grillLight);
+        }
+    }
+
+    // ---- VFX Controllers ----
+
+    public class CookStationVFX : MonoBehaviour
+    {
+        private CookStation _station;
+        private ParticleSystem _sparks;
+        private ParticleSystem _steam;
+        private ParticleSystem _flames;
+        private ParticleSystem _embers;
+        private SpriteFlipbookPlayer _flipbook;
+        private Light _light;
+        
+        private float _baseFlamesRate = 12f;
+        private float _baseEmbersRate = 6f;
+        private float _baseLightIntensity = 1.8f;
+        private float _baseLightRange = 4.5f;
+
+        public void Init(CookStation station, ParticleSystem sparks, ParticleSystem steam, ParticleSystem flames = null, SpriteFlipbookPlayer flipbook = null, ParticleSystem embers = null, Light lightRef = null)
+        {
+            _station = station;
+            _sparks = sparks;
+            _steam = steam;
+            _flames = flames;
+            _flipbook = flipbook;
+            _embers = embers;
+            _light = lightRef;
+            
+            if (_flames != null)
+            {
+                _baseFlamesRate = _flames.emission.rateOverTime.constant;
+            }
+            if (_embers != null)
+            {
+                _baseEmbersRate = _embers.emission.rateOverTime.constant;
+            }
+            if (_light != null)
+            {
+                _baseLightIntensity = _light.intensity;
+                _baseLightRange = _light.range;
+            }
+        }
+
+        private void Update()
+        {
+            if (_station == null) return;
+            bool active = _station.IsCooking;
+
+            if (_sparks != null)
+            {
+                var emission = _sparks.emission;
+                if (emission.enabled != active) emission.enabled = active;
+            }
+            if (_steam != null)
+            {
+                var emission = _steam.emission;
+                if (emission.enabled != active) emission.enabled = active;
+            }
+            if (_flames != null)
+            {
+                var emission = _flames.emission;
+                // Idle: burn softly; Cooking: flare up!
+                float targetRate = active ? _baseFlamesRate * 2.8f : _baseFlamesRate * 0.7f;
+                emission.rateOverTime = new ParticleSystem.MinMaxCurve(targetRate);
+            }
+            if (_embers != null)
+            {
+                var emission = _embers.emission;
+                float targetRate = active ? _baseEmbersRate * 2.2f : _baseEmbersRate * 0.8f;
+                emission.rateOverTime = new ParticleSystem.MinMaxCurve(targetRate);
+            }
+            if (_flipbook != null)
+            {
+                _flipbook.SetSpeedMultiplier(active ? 1.6f : 0.8f);
+            }
+            if (_light != null)
+            {
+                // Smoothly interpolate the base intensity and range of the fire light based on active cooking
+                float targetIntensity = active ? _baseLightIntensity * 2.0f : _baseLightIntensity;
+                float targetRange = active ? _baseLightRange * 1.35f : _baseLightRange;
+                
+                var flicker = _light.GetComponent<LightFlicker>();
+                if (flicker != null)
+                {
+                    flicker.SetBaseIntensity(Mathf.Lerp(flicker.GetBaseIntensity(), targetIntensity, Time.deltaTime * 4f));
+                }
+                _light.range = Mathf.Lerp(_light.range, targetRange, Time.deltaTime * 4f);
+            }
+        }
+    }
+
+    public class LightFlicker : MonoBehaviour
+    {
+        private Light _light;
+        private float _baseIntensity;
+
+        private void Awake()
+        {
+            _light = GetComponent<Light>();
+            if (_light != null) _baseIntensity = _light.intensity;
+        }
+
+        private void Update()
+        {
+            if (_light == null) return;
+            // Flicker intensity dynamically (cozy flame effect)
+            _light.intensity = _baseIntensity * (1f + UnityEngine.Random.Range(-0.15f, 0.15f) * Mathf.Sin(Time.time * 28f));
+        }
+
+        public void SetBaseIntensity(float val)
+        {
+            _baseIntensity = val;
+        }
+
+        public float GetBaseIntensity()
+        {
+            return _baseIntensity;
+        }
+    }
+
+    // ---- 2D Sprite Flipbook Player (Cats&Soup style) ----
+
+    public class SpriteFlipbookPlayer : MonoBehaviour
+    {
+        [SerializeField] private float fps = 10f;
+        
+        private SpriteRenderer _sr;
+        private Sprite[] _frames;
+        private int _currentFrame;
+        private float _timer;
+        private float _speedMultiplier = 1.0f;
+
+        public void Init(string key, float worldHeight, float speedMult = 1.0f)
+        {
+            _sr = GetComponent<SpriteRenderer>();
+            if (_sr == null) _sr = gameObject.AddComponent<SpriteRenderer>();
+
+            var tex = Resources.Load<Texture2D>($"Arcade/{key}");
+            if (tex == null) return;
+
+            // Slice 2x2 grid (4 frames)
+            _frames = new Sprite[4];
+            int w = tex.width / 2;
+            int h = tex.height / 2;
+            float ppu = 256f;
+
+            // Pivot at bottom center (0.5, 0.04) so it stands on the grill
+            _frames[0] = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.04f), ppu);
+            _frames[1] = Sprite.Create(tex, new Rect(w, 0, w, h), new Vector2(0.5f, 0.04f), ppu);
+            _frames[2] = Sprite.Create(tex, new Rect(0, h, w, h), new Vector2(0.5f, 0.04f), ppu);
+            _frames[3] = Sprite.Create(tex, new Rect(w, h, w, h), new Vector2(0.5f, 0.04f), ppu);
+
+            _speedMultiplier = speedMult;
+            _sr.sprite = _frames[0];
+            
+            float sh = _frames[0].bounds.size.y;
+            if (sh > 0f)
+            {
+                float s = worldHeight / sh;
+                transform.localScale = new Vector3(s, s, s);
+            }
+        }
+
+        public void SetSpeedMultiplier(float mult)
+        {
+            _speedMultiplier = mult;
+        }
+
+        private void Update()
+        {
+            if (_frames == null || _frames.Length == 0) return;
+
+            _timer += Time.deltaTime;
+            if (_timer >= 1f / (fps * _speedMultiplier))
+            {
+                _timer = 0f;
+                _currentFrame = (_currentFrame + 1) % _frames.Length;
+                _sr.sprite = _frames[_currentFrame];
+            }
+        }
+    }
+
+    public class WaterScroller : MonoBehaviour
+    {
+        private Material _material;
+        private Vector2 _offset;
+        public float scrollSpeedX = 0.02f;
+        public float scrollSpeedY = 0.08f;
+
+        private void Start()
+        {
+            var mr = GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                _material = mr.material;
+            }
+        }
+
+        private void Update()
+        {
+            if (_material != null)
+            {
+                _offset.x += scrollSpeedX * Time.deltaTime;
+                _offset.y += scrollSpeedY * Time.deltaTime;
+                _material.mainTextureOffset = _offset;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_material != null)
+            {
+                Destroy(_material);
+            }
+        }
+    }
+
+    public class WaterRippleEffect : MonoBehaviour
+    {
+        private float _width;
+        private float _height;
+        private int _sortingOrder;
+        private float _spawnTimer;
+
+        public void Configure(float width, float height, int sortingOrder)
+        {
+            _width = width;
+            _height = height;
+            _sortingOrder = sortingOrder;
+        }
+
+        private void Update()
+        {
+            _spawnTimer -= Time.deltaTime;
+            if (_spawnTimer <= 0f)
+            {
+                if (UnityEngine.Random.value < 0.45f)
+                {
+                    SpawnRipple();
+                }
+                else
+                {
+                    SpawnGlisten();
+                }
+                _spawnTimer = UnityEngine.Random.Range(0.4f, 0.8f);
+            }
+        }
+
+        private void SpawnRipple()
+        {
+            var ripple = new GameObject("WaterRipple");
+            ripple.transform.SetParent(transform.parent, false);
+            
+            float rx = UnityEngine.Random.Range(-_width * 0.5f, _width * 0.5f);
+            float rz = UnityEngine.Random.Range(-_height * 0.5f, _height * 0.5f);
+            Vector3 center = transform.position;
+            ripple.transform.position = new Vector3(center.x + rx, center.y + 0.005f, center.z + rz);
+            ripple.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+
+            var sr = ripple.AddComponent<SpriteRenderer>();
+            sr.sprite = UITheme.Ring;
+            sr.color = new Color(1.0f, 1.0f, 1.0f, 0.0f);
+            sr.sortingOrder = _sortingOrder + 1;
+
+            var animator = ripple.AddComponent<RippleAnimator>();
+            animator.duration = UnityEngine.Random.Range(1.6f, 2.5f);
+            animator.startScale = UnityEngine.Random.Range(0.08f, 0.15f);
+            animator.targetScale = UnityEngine.Random.Range(0.45f, 0.75f);
+        }
+
+        private void SpawnGlisten()
+        {
+            var glisten = new GameObject("WaterGlisten");
+            glisten.transform.SetParent(transform.parent, false);
+
+            float rx = UnityEngine.Random.Range(-_width * 0.5f, _width * 0.5f);
+            float rz = UnityEngine.Random.Range(-_height * 0.5f, _height * 0.5f);
+            Vector3 center = transform.position;
+            glisten.transform.position = new Vector3(center.x + rx, center.y + 0.005f, center.z + rz);
+            glisten.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+
+            var sr = glisten.AddComponent<SpriteRenderer>();
+            sr.sprite = UITheme.Glow;
+            sr.color = new Color(1.0f, 1.0f, 1.0f, 0.0f);
+            sr.sortingOrder = _sortingOrder + 1;
+
+            var animator = glisten.AddComponent<GlistenAnimator>();
+            animator.duration = UnityEngine.Random.Range(0.7f, 1.3f);
+            animator.maxAlpha = UnityEngine.Random.Range(0.5f, 0.85f);
+            animator.maxScale = UnityEngine.Random.Range(0.04f, 0.09f);
+        }
+    }
+
+    public class RippleAnimator : MonoBehaviour
+    {
+        public float duration;
+        public float startScale;
+        public float targetScale;
+        private SpriteRenderer _sr;
+        private float _elapsed;
+
+        private void Start()
+        {
+            _sr = GetComponent<SpriteRenderer>();
+            transform.localScale = new Vector3(startScale, startScale, 1f);
+        }
+
+        private void Update()
+        {
+            _elapsed += Time.deltaTime;
+            float t = _elapsed / duration;
+            if (t >= 1f)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            float currentScale = Mathf.Lerp(startScale, targetScale, t);
+            transform.localScale = new Vector3(currentScale, currentScale, 1f);
+
+            float alpha = 0f;
+            if (t < 0.2f)
+            {
+                alpha = Mathf.Lerp(0f, 0.28f, t / 0.2f);
+            }
+            else
+            {
+                alpha = Mathf.Lerp(0.28f, 0f, (t - 0.2f) / 0.8f);
+            }
+            _sr.color = new Color(0.9f, 0.95f, 1f, alpha);
+        }
+    }
+
+    public class GlistenAnimator : MonoBehaviour
+    {
+        public float duration;
+        public float maxAlpha;
+        public float maxScale;
+        private SpriteRenderer _sr;
+        private float _elapsed;
+
+        private void Start()
+        {
+            _sr = GetComponent<SpriteRenderer>();
+            transform.localScale = new Vector3(0.01f, 0.01f, 1f);
+        }
+
+        private void Update()
+        {
+            _elapsed += Time.deltaTime;
+            float t = _elapsed / duration;
+            if (t >= 1f)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+            float scale = Mathf.PingPong(t * 2f, 1f) * maxScale;
+            transform.localScale = new Vector3(scale, scale, 1f);
+
+            float alpha = Mathf.Sin(t * Mathf.PI) * maxAlpha;
+            _sr.color = new Color(1.0f, 1.0f, 1.0f, alpha);
+        }
+    }
+
+    public class TessellatedWater : MonoBehaviour
+    {
+        private MeshFilter _meshFilter;
+        private Mesh _mesh;
+        private Vector3[] _baseVertices;
+        private Vector3[] _deformedVertices;
+        
+        public float width = 2.4f;
+        public float height = 6.4f;
+        public int segmentsX = 8;
+        public int segmentsY = 24;
+
+        public float waveHeight = 0.035f;
+        public float waveFrequency = 2.2f;
+        public float waveSpeed = 1.8f;
+
+        private void Start()
+        {
+            _meshFilter = GetComponent<MeshFilter>();
+            if (_meshFilter == null) _meshFilter = gameObject.AddComponent<MeshFilter>();
+            
+            _mesh = new Mesh();
+            _mesh.name = "WaterGrid";
+            _meshFilter.mesh = _mesh;
+
+            GenerateGridMesh();
+        }
+
+        private void GenerateGridMesh()
+        {
+            int vertexCount = (segmentsX + 1) * (segmentsY + 1);
+            Vector3[] vertices = new Vector3[vertexCount];
+            Vector2[] uvs = new Vector2[vertexCount];
+            int[] triangles = new int[segmentsX * segmentsY * 6];
+
+            float dx = width / segmentsX;
+            float dy = height / segmentsY;
+
+            int v = 0;
+            for (int y = 0; y <= segmentsY; y++)
+            {
+                for (int x = 0; x <= segmentsX; x++)
+                {
+                    // Center the grid around origin in local space
+                    float lx = x * dx - width * 0.5f;
+                    float ly = y * dy - height * 0.5f;
+                    
+                    // rotated 90 on X, local X is world X, local Y is world Z.
+                    // Local Z drives height/displacement
+                    vertices[v] = new Vector3(lx, ly, 0f);
+                    
+                    uvs[v] = new Vector2((float)x / segmentsX, (float)y / segmentsY);
+                    v++;
+                }
+            }
+
+            int t = 0;
+            for (int y = 0; y < segmentsY; y++)
+            {
+                for (int x = 0; x < segmentsX; x++)
+                {
+                    int row1 = y * (segmentsX + 1) + x;
+                    int row2 = (y + 1) * (segmentsX + 1) + x;
+
+                    triangles[t++] = row1;
+                    triangles[t++] = row2;
+                    triangles[t++] = row1 + 1;
+
+                    triangles[t++] = row1 + 1;
+                    triangles[t++] = row2;
+                    triangles[t++] = row2 + 1;
+                }
+            }
+
+            _mesh.vertices = vertices;
+            _mesh.uv = uvs;
+            _mesh.triangles = triangles;
+            _mesh.RecalculateNormals();
+            _mesh.RecalculateBounds();
+
+            _baseVertices = vertices;
+            _deformedVertices = new Vector3[vertices.Length];
+        }
+
+        private void Update()
+        {
+            if (_baseVertices == null) return;
+
+            float time = Time.time * waveSpeed;
+            for (int i = 0; i < _baseVertices.Length; i++)
+            {
+                Vector3 vertex = _baseVertices[i];
+                
+                // Sinusoidal wave along river length (local Y) with a slight local X dependency
+                float wave = Mathf.Sin(vertex.y * waveFrequency + vertex.x * 0.6f + time) * waveHeight;
+                // Secondary wave for organic layering
+                wave += Mathf.Sin(vertex.y * waveFrequency * 2.0f - time * 1.2f) * waveHeight * 0.3f;
+
+                _deformedVertices[i] = new Vector3(vertex.x, vertex.y, wave);
+            }
+
+            _mesh.vertices = _deformedVertices;
+            _mesh.RecalculateNormals();
+            _mesh.RecalculateBounds();
         }
     }
 }

@@ -18,12 +18,12 @@ namespace Nyangsta.Arcade
         [SerializeField] private WorldBubble costBubble;
         [SerializeField] private string displayName = "직원 고용";
 
-        private GatherZone _gatherZone;
-        private CookStation _cookStation;
-        private TableZone[] _tables;
-        private ArcadeItemType _rawType;
-        private ArcadeItemType _cookedType;
-        private Transform _spawnPoint;
+        [SerializeField] private GatherZone gatherZone;
+        [SerializeField] private CookStation cookStation;
+        [SerializeField] private TableZone[] tables;
+        [SerializeField] private ArcadeItemType rawType;
+        [SerializeField] private ArcadeItemType cookedType;
+        [SerializeField] private Transform spawnPoint;
 
         private double _paid;
         private float _timer;
@@ -43,22 +43,22 @@ namespace Nyangsta.Arcade
             WorldBubble bubble,
             GatherZone gather,
             CookStation cook,
-            TableZone[] tables,
+            TableZone[] tableZones,
             ArcadeItemType raw,
             ArcadeItemType cooked,
-            Transform spawnPoint,
+            Transform spawn,
             string name)
         {
             totalCost = System.Math.Max(1, cost);
             drainPerTick = System.Math.Max(1, tick);
             costBubble = bubble;
             displayName = string.IsNullOrWhiteSpace(name) ? displayName : name;
-            _gatherZone = gather;
-            _cookStation = cook;
-            _tables = tables;
-            _rawType = raw;
-            _cookedType = cooked;
-            _spawnPoint = spawnPoint;
+            gatherZone = gather;
+            cookStation = cook;
+            tables = tableZones;
+            rawType = raw;
+            cookedType = cooked;
+            spawnPoint = spawn;
             UpdateLabel();
         }
 
@@ -129,7 +129,7 @@ namespace Nyangsta.Arcade
             go.name = "Staff_Nyangsta";
             go.transform.localScale = new Vector3(0.82f, 0.82f, 0.82f);
 
-            Vector3 pos = _spawnPoint != null ? _spawnPoint.position : transform.position;
+            Vector3 pos = spawnPoint != null ? spawnPoint.position : transform.position;
             pos.y = 1f;
             go.transform.position = pos;
 
@@ -167,7 +167,7 @@ namespace Nyangsta.Arcade
             stack.Configure(anchor, 3);
 
             var agent = go.AddComponent<StaffAgent>();
-            agent.Configure(_gatherZone, _cookStation, _tables, _rawType, _cookedType);
+            agent.Configure(gatherZone, cookStation, tables, rawType, cookedType);
         }
 
         private void UpdateLabel()
@@ -180,8 +180,8 @@ namespace Nyangsta.Arcade
 
         private bool IsFacilityReady()
         {
-            bool gatherReady = _gatherZone == null || _gatherZone.gameObject.activeInHierarchy;
-            bool cookReady = _cookStation == null || _cookStation.gameObject.activeInHierarchy;
+            bool gatherReady = gatherZone == null || gatherZone.gameObject.activeInHierarchy;
+            bool cookReady = cookStation == null || cookStation.gameObject.activeInHierarchy;
             return gatherReady && cookReady;
         }
 

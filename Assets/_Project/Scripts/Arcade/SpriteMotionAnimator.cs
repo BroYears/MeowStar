@@ -9,10 +9,8 @@ namespace Nyangsta.Arcade
     /// rotation that was just written this frame. Bounce uses localPosition and
     /// flip/breathe use localScale, so nothing fights the billboard's rotation.
     ///
-    /// Actor mode derives velocity from the motion source transform's position delta
-    /// (defaults to the parent, which is the moving capsule for player/staff/customer);
-    /// SetVelocity lets a controller push velocity explicitly instead. Facility mode
-    /// wobbles while the activity delegate returns true. Zero GC alloc per frame.
+    /// Updated with a Spring-Mass-Damper model (Cats&Soup style) for organic, jelly-like
+    /// elastic movement, squash & stretch on impact, and secondary inertial sways.
     /// </summary>
     [DefaultExecutionOrder(50)]
     public class SpriteMotionAnimator : MonoBehaviour
@@ -22,6 +20,7 @@ namespace Nyangsta.Arcade
         private const float MOVE_SPEED_THRESHOLD = 0.05f;
         private const float FLIP_SPEED_THRESHOLD = 0.1f;
 
+        [Header("Base Motion")]
         [SerializeField] private float hopHeight = 0.09f;
         [SerializeField] private float hopFrequency = 9f;
         [SerializeField] private float leanAngle = 7f;
@@ -31,6 +30,14 @@ namespace Nyangsta.Arcade
         [SerializeField] private float wobbleAngle = 4f;
         [SerializeField] private float wobbleFrequency = 14f;
         [SerializeField] private float wobblePulse = 0.04f;
+
+        [Header("Spring Physics (Cats&Soup Style)")]
+        [SerializeField] private float scaleStiffness = 180f;
+        [SerializeField] private float scaleDamping = 12f;
+        [SerializeField] private float rotStiffness = 150f;
+        [SerializeField] private float rotDamping = 10f;
+        [SerializeField] private float walkImpactForce = 0.8f;
+        [SerializeField] private float stopImpactForce = 1.8f;
 
         private Mode _mode = Mode.Actor;
         private Transform _source;
@@ -42,8 +49,16 @@ namespace Nyangsta.Arcade
         private Vector3 _baseLocalPos;
         private Vector3 _baseLocalScale = Vector3.one;
         private float _hopPhase;
-        private float _lean;
         private float _flipSign = 1f;
+
+        // Spring State Variables
+        private Vector3 _scaleSpringValue = Vector3.zero;     // Displacement from base scale
+        private Vector3 _scaleSpringVelocity = Vector3.zero;
+        private float _rotSpringValue = 0f;                   // Displacement from base rotation lean
+        private float _rotSpringVelocity = 0f;
+
+        private bool _wasMoving;
+        private float _lastHopSin;
 
         /// <summary>Drive movement animation from a transform's per-frame position delta.</summary>
         public void ConfigureActor(Transform motionSource)
@@ -108,7 +123,7 @@ namespace Nyangsta.Arcade
             float planarSpeed = Mathf.Sqrt(_velocity.x * _velocity.x + _velocity.z * _velocity.z);
             bool moving = planarSpeed > MOVE_SPEED_THRESHOLD;
 
-            // Hop: sin bounce on local Y while moving (billboard owns rotation, not position).
+            // 1. Hop: standard vertical bounce on Y while moving.
             float hop = 0f;
             if (moving)
             {
@@ -123,26 +138,76 @@ namespace Nyangsta.Arcade
             lp.y += hop;
             transform.localPosition = lp;
 
-            // Lean into the horizontal move direction (screen X ~ world X with this camera).
-            float targetLean = moving ? -Mathf.Clamp(vx / leanRefSpeed, -1f, 1f) * leanAngle : 0f;
-            _lean = Mathf.Lerp(_lean, targetLean, dt * 10f);
-            if (Mathf.Abs(_lean) > 0.01f)
-                transform.rotation *= Quaternion.Euler(0f, 0f, _lean);
-
             // Flip by horizontal move direction; idle keeps the last facing.
             if (vx > FLIP_SPEED_THRESHOLD) _flipSign = 1f;
             else if (vx < -FLIP_SPEED_THRESHOLD) _flipSign = -1f;
 
-            // Idle breathing: tiny squash & stretch pulse.
-            Vector3 scale = _baseLocalScale;
-            if (!moving)
+            // 2. Landing & Stop Impacts (Triggers force impulses on the springs)
+            float currentSin = moving ? Mathf.Abs(Mathf.Sin(_hopPhase)) : 0f;
+            if (moving)
             {
-                float p = Mathf.Sin(Time.time * breatheFrequency) * breatheAmount;
-                scale.y *= 1f + p;
-                scale.x *= 1f - p * 0.5f;
+                // When landing on the ground during walk cycle
+                if (_lastHopSin > 0.05f && currentSin <= 0.05f)
+                {
+                    _scaleSpringVelocity.y = -walkImpactForce;
+                    _scaleSpringVelocity.x = walkImpactForce * 0.4f;
+                }
+                _lastHopSin = currentSin;
             }
-            scale.x *= _flipSign;
-            transform.localScale = scale;
+            else
+            {
+                _lastHopSin = 0f;
+            }
+
+            // Sudden stop impact
+            if (_wasMoving && !moving)
+            {
+                // Squash flat on impact
+                _scaleSpringVelocity.y = -stopImpactForce;
+                _scaleSpringVelocity.x = stopImpactForce * 0.4f;
+                
+                // Rotational whip in the direction of velocity (inertia)
+                _rotSpringVelocity = (vx > 0f ? -1f : 1f) * stopImpactForce * 18f;
+            }
+            _wasMoving = moving;
+
+            // 3. Spring Target Calculations
+            // Target lean (tilt) based on velocity
+            float targetLean = moving ? -Mathf.Clamp(vx / leanRefSpeed, -1f, 1f) * leanAngle : 0f;
+
+            // Target scale (breathe when idle, stretch when moving)
+            float targetScaleX = 0f;
+            float targetScaleY = 0f;
+            if (moving)
+            {
+                // Stretch along Y, squash along X proportional to speed
+                float stretch = (planarSpeed / leanRefSpeed) * 0.07f;
+                targetScaleY = stretch;
+                targetScaleX = -stretch * 0.5f;
+            }
+            else
+            {
+                // Idle breathing squash & stretch
+                float p = Mathf.Sin(Time.time * breatheFrequency) * breatheAmount;
+                targetScaleY = p;
+                targetScaleX = -p * 0.5f;
+            }
+
+            // 4. Update Springs (Euler integration steps)
+            UpdateSpring(ref _scaleSpringValue.x, ref _scaleSpringVelocity.x, targetScaleX, scaleStiffness, scaleDamping, dt);
+            UpdateSpring(ref _scaleSpringValue.y, ref _scaleSpringVelocity.y, targetScaleY, scaleStiffness, scaleDamping, dt);
+            UpdateSpring(ref _rotSpringValue, ref _rotSpringVelocity, targetLean, rotStiffness, rotDamping, dt);
+
+            // 5. Apply Spring Outputs to Transform
+            if (Mathf.Abs(_rotSpringValue) > 0.01f)
+            {
+                transform.rotation *= Quaternion.Euler(0f, 0f, _rotSpringValue);
+            }
+
+            Vector3 finalScale = _baseLocalScale;
+            finalScale.x = _baseLocalScale.x * (1f + _scaleSpringValue.x) * _flipSign;
+            finalScale.y = _baseLocalScale.y * (1f + _scaleSpringValue.y);
+            transform.localScale = finalScale;
         }
 
         private void TickFacility()
@@ -159,6 +224,14 @@ namespace Nyangsta.Arcade
             transform.rotation *= Quaternion.Euler(0f, 0f, Mathf.Sin(t * wobbleFrequency) * wobbleAngle);
             float pulse = 1f + Mathf.Abs(Mathf.Sin(t * wobbleFrequency * 0.5f)) * wobblePulse;
             transform.localScale = _baseLocalScale * pulse;
+        }
+
+        // 1D Spring-Mass-Damper Solver
+        private void UpdateSpring(ref float value, ref float velocity, float target, float stiffness, float damping, float dt)
+        {
+            float force = -stiffness * (value - target) - damping * velocity;
+            velocity += force * dt;
+            value += velocity * dt;
         }
     }
 }
