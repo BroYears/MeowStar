@@ -70,7 +70,7 @@ namespace Nyangsta.EditorTools
         /// <summary>
         /// 레스토랑(탭형 타이쿤) 전용 씬. 아케이드 부트스트랩 대신 손님/사냥/방치 매니저를
         /// 모두 배치하고 RestaurantView 를 추가한다. 탭 UI(GameUIController)는 GameUIBootstrap 이
-        /// 런타임에 자동 생성한다(씬에 ArcadePrototypeBootstrap 이 없으면 활성화됨).
+        /// 런타임에 자동 생성한다(Bootstrap/Arcade 씬이 아니면 활성화됨).
         /// </summary>
         private static void CreateRestaurantScene(GameDatabase db)
         {

@@ -134,7 +134,7 @@ namespace Nyangsta.Arcade
         }
 
         private bool IsServable(TableZone table)
-            => table != null && table.gameObject.activeInHierarchy && table.IsOccupied;
+            => table != null && table.gameObject.activeInHierarchy && table.HasWaitingOrderFor(_cookedType);
 
         private TableZone FindServableTable()
         {

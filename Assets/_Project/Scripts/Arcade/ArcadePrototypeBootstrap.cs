@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
 using Nyangsta.Core;
 using Nyangsta.Customer;
 using Nyangsta.Economy;
@@ -38,6 +39,7 @@ namespace Nyangsta.Arcade
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureArcadeBootstrap()
         {
+            if (!IsArcadeBootstrapScene(SceneManager.GetActiveScene())) return;
             if (Object.FindAnyObjectByType<SaveManager>() == null) return;
             // Exit early if the developer added an ArcadeSceneManager (Option A) to run their pre-designed scene.
             if (Object.FindAnyObjectByType<ArcadeSceneManager>() != null) return;
@@ -45,6 +47,18 @@ namespace Nyangsta.Arcade
 
             var go = new GameObject("_ArcadeM1Bootstrap(Auto)");
             go.AddComponent<ArcadePrototypeBootstrap>();
+        }
+
+        public static bool IsArcadeBootstrapScene(Scene scene)
+        {
+            if (!scene.IsValid()) return false;
+
+            var path = scene.path ?? string.Empty;
+            var name = scene.name ?? string.Empty;
+            return path.EndsWith("/Bootstrap.unity", System.StringComparison.OrdinalIgnoreCase)
+                || path.IndexOf("/Arcade", System.StringComparison.OrdinalIgnoreCase) >= 0
+                || name.Equals("Bootstrap", System.StringComparison.OrdinalIgnoreCase)
+                || name.IndexOf("Arcade", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private void Start()

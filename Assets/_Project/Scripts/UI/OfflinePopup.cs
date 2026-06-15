@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Nyangsta.Economy;
 using Nyangsta.Ads;
+using Nyangsta.Save;
 
 namespace Nyangsta.UI
 {
@@ -67,7 +68,7 @@ namespace Nyangsta.UI
             {
                 if (claimed) return;
                 claimed = true;
-                IdleIncomeManager.Instance?.ClaimOffline(gold, false);
+                ClaimOffline(gold, false);
                 Audio.Sfx.Coin();
                 Close();
             });
@@ -80,7 +81,7 @@ namespace Nyangsta.UI
                 {
                     if (claimed) return;
                     claimed = true;
-                    IdleIncomeManager.Instance?.ClaimOffline(gold, ok);
+                    ClaimOffline(gold, ok);
                     Audio.Sfx.Purchase();
                     if (ok) Toast.Show("오프라인 수익 2배 획득!", UITheme.Gold);
                     Close();
@@ -90,6 +91,21 @@ namespace Nyangsta.UI
 
             UITween.PopIn(card, 0.34f, 0.8f);
             Audio.Sfx.Ding();
+        }
+
+        private static void ClaimOffline(double gold, bool doubled)
+        {
+            var idle = IdleIncomeManager.Instance;
+            if (idle != null)
+            {
+                idle.ClaimOffline(gold, doubled);
+            }
+            else
+            {
+                EconomyManager.Instance?.AddGold(doubled ? gold * 2 : gold);
+            }
+
+            SaveManager.Instance?.Save();
         }
     }
 }

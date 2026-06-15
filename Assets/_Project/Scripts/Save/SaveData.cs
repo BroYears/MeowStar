@@ -25,6 +25,21 @@ namespace Nyangsta.Save
         public int level;
     }
 
+    [Serializable]
+    public class ArcadeZonePaymentProgress
+    {
+        public string id;
+        public double paid;
+    }
+
+    [Serializable]
+    public class ArcadeUpgradePaymentProgress
+    {
+        public string id;
+        public int level;
+        public double paid;
+    }
+
     /// <summary>
     /// Root save object. JsonUtility doesn't serialize Dictionary, so collections
     /// are stored as lists and rebuilt into dictionaries at runtime by the managers.
@@ -46,6 +61,8 @@ namespace Nyangsta.Save
         public List<string> recruitedStaff = new();
         public List<string> arcadeCompletedZones = new();
         public List<UpgradeLevel> arcadeUpgradeLevels = new();
+        public List<ArcadeZonePaymentProgress> arcadeZonePaymentProgress = new();
+        public List<ArcadeUpgradePaymentProgress> arcadeUpgradePaymentProgress = new();
 
         public long lastQuitUnixTime;
         public bool adsRemoved;

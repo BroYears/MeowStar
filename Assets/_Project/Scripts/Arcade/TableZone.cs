@@ -32,6 +32,13 @@ namespace Nyangsta.Arcade
             _customer = null;
         }
 
+        public bool HasWaitingOrderFor(ArcadeItemType itemType)
+        {
+            return _customer != null
+                && _customer.Current == ArcadeCustomer.State.Waiting
+                && _customer.WantedItem == itemType;
+        }
+
         public void SpawnMoneyPile(double amount)
         {
             if (moneyPilePrefab == null) return;

@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using Nyangsta.Economy;
+using Nyangsta.Save;
 
 namespace Nyangsta.Arcade
 {
@@ -27,6 +28,10 @@ namespace Nyangsta.Arcade
         private string _zoneId;
         private ArcadeUpgradeService _upgrades;
         private Action<int> _applyLevel;
+        private bool _partialDirty;
+        private float _lastPartialSaveTime = -10f;
+
+        private const float PartialSaveInterval = 0.75f;
 
         public int Level => _level;
         public bool IsMaxed => _level >= maxLevel;
@@ -64,8 +69,15 @@ namespace Nyangsta.Arcade
         public void RestoreLevel()
         {
             _level = _upgrades != null ? _upgrades.GetLevel(_zoneId) : 0;
+            RestorePartialPayment();
             _applyLevel?.Invoke(_level);
             UpdateLabel();
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            if (_partialDirty) StorePartialPayment(true);
         }
 
         protected override void OnAgentStay(StackHolder agent, float dt)
@@ -82,6 +94,7 @@ namespace Nyangsta.Arcade
             if (economy == null || !economy.TrySpendGold(tick)) return;
 
             _paidTowardNext += tick;
+            StorePartialPayment(false);
             Nyangsta.Audio.Sfx.CoinTick();
             if (_paidTowardNext >= NextCost) LevelUp();
             UpdateLabel();
@@ -91,6 +104,7 @@ namespace Nyangsta.Arcade
         {
             _level++;
             _paidTowardNext = 0;
+            ClearPartialPayment();
             _applyLevel?.Invoke(_level);
             Nyangsta.Audio.Sfx.Fanfare();
             Nyangsta.Core.Haptics.Medium();
@@ -100,6 +114,98 @@ namespace Nyangsta.Arcade
                 _upgrades.SetLevel(_zoneId, _level);
                 Save.SaveManager.Instance?.Save();
             }
+        }
+
+        private void RestorePartialPayment()
+        {
+            if (string.IsNullOrWhiteSpace(_zoneId) || IsMaxed)
+            {
+                _paidTowardNext = 0;
+                ClearPartialPayment();
+                return;
+            }
+
+            var progress = FindPartialPayment(_zoneId);
+            if (progress == null || progress.level != _level)
+            {
+                _paidTowardNext = 0;
+                if (progress != null) ClearPartialPayment();
+                return;
+            }
+
+            _paidTowardNext = System.Math.Min(NextCost, System.Math.Max(0, progress.paid));
+            if (_paidTowardNext >= NextCost) LevelUpRestoredPayment();
+        }
+
+        private void LevelUpRestoredPayment()
+        {
+            _level++;
+            _paidTowardNext = 0;
+            ClearPartialPayment();
+
+            if (_upgrades != null)
+            {
+                _upgrades.SetLevel(_zoneId, _level);
+                Save.SaveManager.Instance?.Save();
+            }
+        }
+
+        private void StorePartialPayment(bool flush)
+        {
+            if (string.IsNullOrWhiteSpace(_zoneId) || IsMaxed) return;
+
+            var save = Save.SaveManager.Instance;
+            var data = save?.Data;
+            if (data == null) return;
+            if (data.arcadeUpgradePaymentProgress == null) data.arcadeUpgradePaymentProgress = new System.Collections.Generic.List<ArcadeUpgradePaymentProgress>();
+
+            var progress = FindPartialPayment(_zoneId);
+            if (progress == null)
+            {
+                progress = new ArcadeUpgradePaymentProgress { id = _zoneId };
+                data.arcadeUpgradePaymentProgress.Add(progress);
+            }
+
+            progress.level = _level;
+            progress.paid = System.Math.Min(NextCost, System.Math.Max(0, _paidTowardNext));
+            _partialDirty = true;
+
+            if (flush || Time.unscaledTime - _lastPartialSaveTime >= PartialSaveInterval)
+            {
+                save.Save();
+                _lastPartialSaveTime = Time.unscaledTime;
+                _partialDirty = false;
+            }
+        }
+
+        private void ClearPartialPayment()
+        {
+            if (string.IsNullOrWhiteSpace(_zoneId)) return;
+
+            var data = Save.SaveManager.Instance?.Data;
+            var list = data?.arcadeUpgradePaymentProgress;
+            if (list == null) return;
+
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                if (list[i] == null || list[i].id == _zoneId) list.RemoveAt(i);
+            }
+
+            _partialDirty = false;
+        }
+
+        private ArcadeUpgradePaymentProgress FindPartialPayment(string zoneId)
+        {
+            var list = Save.SaveManager.Instance?.Data?.arcadeUpgradePaymentProgress;
+            if (list == null) return null;
+            foreach (var progress in list)
+                if (progress != null && progress.id == zoneId) return progress;
+            return null;
+        }
+
+        private void OnDestroy()
+        {
+            if (_partialDirty) StorePartialPayment(true);
         }
 
         private double CostForLevel(int level) =>

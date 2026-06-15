@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Nyangsta.Arcade;
 using Nyangsta.Core;
 using Nyangsta.Save;
@@ -20,7 +21,8 @@ namespace Nyangsta.UI
         {
             // Only act inside the actual game scene (its managers are present).
             if (Object.FindAnyObjectByType<SaveManager>() == null) return;
-            if (Object.FindAnyObjectByType<ArcadePrototypeBootstrap>() != null) return;
+            if (ArcadePrototypeBootstrap.IsArcadeBootstrapScene(SceneManager.GetActiveScene())) return;
+            if (Object.FindAnyObjectByType<ArcadeSceneManager>() != null) return;
 
             // Hide the old IMGUI debug overlay if it's still in the saved scene.
             var debug = Object.FindAnyObjectByType<DebugTester>();
