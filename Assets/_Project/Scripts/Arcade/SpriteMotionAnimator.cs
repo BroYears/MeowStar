@@ -165,7 +165,7 @@ namespace Nyangsta.Arcade
                 // Squash flat on impact
                 _scaleSpringVelocity.y = -stopImpactForce;
                 _scaleSpringVelocity.x = stopImpactForce * 0.4f;
-                
+
                 // Rotational whip in the direction of velocity (inertia)
                 _rotSpringVelocity = (vx > 0f ? -1f : 1f) * stopImpactForce * 18f;
             }

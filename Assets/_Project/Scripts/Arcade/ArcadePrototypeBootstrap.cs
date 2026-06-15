@@ -620,10 +620,10 @@ namespace Nyangsta.Arcade
                     var riverMr = go.AddComponent<MeshRenderer>();
                     var mat = new Material(Shader.Find("Sprites/Default"));
                     mat.mainTexture = sprite.texture;
-                    
+
                     // Enable texture repeating for tiling
                     sprite.texture.wrapMode = TextureWrapMode.Repeat;
-                    
+
                     // Map tiling scale relative to pixels per unit
                     float tileW = worldW / (sprite.texture.width / sprite.pixelsPerUnit);
                     float tileH = worldH / (sprite.texture.height / sprite.pixelsPerUnit);
@@ -1256,7 +1256,7 @@ namespace Nyangsta.Arcade
                 var psrF = flamesGo.GetComponent<ParticleSystemRenderer>();
                 psrF.renderMode = ParticleSystemRenderMode.Billboard;
                 psrF.material = new Material(Shader.Find("Sprites/Default"));
-                
+
                 var flameSprite = UITheme.Flame;
                 if (flameSprite != null) psrF.material.mainTexture = flameSprite.texture;
 
@@ -1279,7 +1279,7 @@ namespace Nyangsta.Arcade
         private ParticleSystem _embers;
         private SpriteFlipbookPlayer _flipbook;
         private Light _light;
-        
+
         private float _baseFlamesRate = 12f;
         private float _baseEmbersRate = 6f;
         private float _baseLightIntensity = 1.8f;
@@ -1294,7 +1294,7 @@ namespace Nyangsta.Arcade
             _flipbook = flipbook;
             _embers = embers;
             _light = lightRef;
-            
+
             if (_flames != null)
             {
                 _baseFlamesRate = _flames.emission.rateOverTime.constant;
@@ -1347,7 +1347,7 @@ namespace Nyangsta.Arcade
                 // Smoothly interpolate the base intensity and range of the fire light based on active cooking
                 float targetIntensity = active ? _baseLightIntensity * 2.0f : _baseLightIntensity;
                 float targetRange = active ? _baseLightRange * 1.35f : _baseLightRange;
-                
+
                 var flicker = _light.GetComponent<LightFlicker>();
                 if (flicker != null)
                 {
@@ -1392,7 +1392,7 @@ namespace Nyangsta.Arcade
     public class SpriteFlipbookPlayer : MonoBehaviour
     {
         [SerializeField] private float fps = 10f;
-        
+
         private SpriteRenderer _sr;
         private Sprite[] _frames;
         private int _currentFrame;
@@ -1421,7 +1421,7 @@ namespace Nyangsta.Arcade
 
             _speedMultiplier = speedMult;
             _sr.sprite = _frames[0];
-            
+
             float sh = _frames[0].bounds.size.y;
             if (sh > 0f)
             {
@@ -1519,7 +1519,7 @@ namespace Nyangsta.Arcade
         {
             var ripple = new GameObject("WaterRipple");
             ripple.transform.SetParent(transform.parent, false);
-            
+
             float rx = UnityEngine.Random.Range(-_width * 0.5f, _width * 0.5f);
             float rz = UnityEngine.Random.Range(-_height * 0.5f, _height * 0.5f);
             Vector3 center = transform.position;
@@ -1638,7 +1638,7 @@ namespace Nyangsta.Arcade
         private Mesh _mesh;
         private Vector3[] _baseVertices;
         private Vector3[] _deformedVertices;
-        
+
         public float width = 2.4f;
         public float height = 6.4f;
         public int segmentsX = 8;
@@ -1652,7 +1652,7 @@ namespace Nyangsta.Arcade
         {
             _meshFilter = GetComponent<MeshFilter>();
             if (_meshFilter == null) _meshFilter = gameObject.AddComponent<MeshFilter>();
-            
+
             _mesh = new Mesh();
             _mesh.name = "WaterGrid";
             _meshFilter.mesh = _mesh;
@@ -1678,11 +1678,11 @@ namespace Nyangsta.Arcade
                     // Center the grid around origin in local space
                     float lx = x * dx - width * 0.5f;
                     float ly = y * dy - height * 0.5f;
-                    
+
                     // rotated 90 on X, local X is world X, local Y is world Z.
                     // Local Z drives height/displacement
                     vertices[v] = new Vector3(lx, ly, 0f);
-                    
+
                     uvs[v] = new Vector2((float)x / segmentsX, (float)y / segmentsY);
                     v++;
                 }
@@ -1724,7 +1724,7 @@ namespace Nyangsta.Arcade
             for (int i = 0; i < _baseVertices.Length; i++)
             {
                 Vector3 vertex = _baseVertices[i];
-                
+
                 // Sinusoidal wave along river length (local Y) with a slight local X dependency
                 float wave = Mathf.Sin(vertex.y * waveFrequency + vertex.x * 0.6f + time) * waveHeight;
                 // Secondary wave for organic layering

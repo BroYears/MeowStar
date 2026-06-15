@@ -155,7 +155,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f9a363057dc4340d3b0c61fa28703918, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Audio.SfxManager
 --- !u!114 &864192250
 MonoBehaviour:
@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ff67ef5db22794c66b57b9857355afb7, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.UI.UIManager
   panelRoot: {fileID: 0}
 --- !u!114 &864192251
@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d1eb444994a24ee58fcc5dd540c0de4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Ads.AdManager
   simulateInEditor: 1
 --- !u!114 &864192252
@@ -193,7 +193,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b98076b25247248aa8bfc60ae895d02a, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Economy.IdleIncomeManager
   goldPerSecond: 0
   staffGoldPerSecond: 0.8
@@ -211,7 +211,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 34a070321e6f949ed993699e9bd16785, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Customer.CustomerManager
   spawnInterval: 4
   baseSeats: 3
@@ -230,7 +230,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 123b12a52478544cda641f191becfa9a, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Hunting.HuntingManager
   huntDuration: 15
   comboWindow: 1.2
@@ -249,7 +249,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55b5d8eddd05d45bfb640eab6b6f0241, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Economy.EconomyManager
   database: {fileID: 0}
   starterIngredientEach: 10
@@ -263,7 +263,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cfdca8a6a2d04ff49dc9e1250324a892, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Progression.ProgressionManager
 --- !u!114 &864192257
 MonoBehaviour:
@@ -275,7 +275,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a375273b3921408681e0bce07d4adc1, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Core.GameManager
   database: {fileID: 0}
 --- !u!114 &864192258
@@ -288,7 +288,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 40386bd02040a4f1da79f7a525a9b1ba, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Save.SaveManager
 --- !u!4 &864192259
 Transform:
@@ -429,7 +429,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 211860ee2a5734e3b9c1a33714754e37, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.UI.RestaurantView
   backgroundSprite: {fileID: 21300000, guid: 893a64d61b63c43658d7a95787c9c4ca, type: 3}
   chefSprite: {fileID: 21300000, guid: e45671ec135454c70a8a4440b4eebe6f, type: 3}

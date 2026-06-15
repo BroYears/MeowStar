@@ -18,13 +18,13 @@ namespace Nyangsta.Arcade
     {
         [Header("Services & Configuration")]
         [SerializeField] private bool autoBindOnStart = true;
-        
+
         [Header("Scene References")]
         [SerializeField] private ArcadePlayerController player;
         [SerializeField] private ArcadeCustomerSpawner spawner;
         [SerializeField] private BuildZone[] buildZones;
         [SerializeField] private HireZone[] hireZones;
-        
+
         // Upgrade Zones in the scene
         [System.Serializable]
         public struct UpgradeZoneRef
@@ -49,7 +49,7 @@ namespace Nyangsta.Arcade
             public double pay;
             public MonoBehaviour gate; // CookStation or other active constraint
         }
-        
+
         [Header("Customer Spawner Configuration")]
         [SerializeField] private ArcadeCustomer customerPrefab;
         [SerializeField] private TableZone[] tables;
@@ -102,11 +102,11 @@ namespace Nyangsta.Arcade
             foreach (var upRef in upgradeZones)
             {
                 if (upRef.upgradeZone == null) continue;
-                
+
                 var cook = upRef.cookStation;
                 var facility = upRef.facilitySprite;
                 Vector3 baseScale = facility != null ? facility.transform.localScale : Vector3.one;
-                
+
                 upRef.upgradeZone.Configure(
                     upRef.displayName,
                     upRef.baseCost,
@@ -120,7 +120,7 @@ namespace Nyangsta.Arcade
                         if (facility != null) facility.transform.localScale = baseScale * (1f + 0.06f * level);
                     }
                 );
-                
+
                 upRef.upgradeZone.BindProgress(upgrades, upRef.zoneId);
                 upRef.upgradeZone.RestoreLevel();
             }
@@ -145,7 +145,7 @@ namespace Nyangsta.Arcade
             if (player != null)
             {
                 var stack = player.GetComponent<StackHolder>();
-                
+
                 // Build HUD Canvas
                 var hudGo = new GameObject("ArcadeHUD");
                 var hudView = hudGo.AddComponent<ArcadeHUD>();
