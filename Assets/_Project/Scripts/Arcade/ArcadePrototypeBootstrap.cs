@@ -77,11 +77,15 @@ namespace Nyangsta.Arcade
             var customerPrefab = MakeCustomerPrefab(prefabs.transform);
 
             // Ground keeps its box collider (the player's CharacterController stands on it)
-            // but the mesh is hidden and a tiled grass sprite is laid on top.
-            MakeFloor("Ground", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 10f), "tile_grass", 17f, 10f, bias: -200, keepCollider: true);
+            // but the mesh is hidden. We pass empty string "" so no sprite tiles are spawned for it.
+            MakeFloor("Ground", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 10f), "", 17f, 10f, bias: -200, keepCollider: true);
+
+            // Visual split floors
+            MakeFloor("OutsideFloor", root.transform, new Vector3(-6.05f, 0f, 0f), new Vector3(4.9f, 0.4f, 10f), "tile_grass", 4.9f, 10f, bias: -200, keepCollider: false);
+            MakeFloor("InsideFloor", root.transform, new Vector3(2.45f, 0f, 0f), new Vector3(12.1f, 0.4f, 10f), "tile_wood", 12.1f, 10f, bias: -200, keepCollider: false);
+
             MakeFloor("River", root.transform, new Vector3(-6.6f, 0.03f, -1.2f), new Vector3(2.4f, 0.08f, 6.4f), "tile_water", 2.4f, 6.4f, bias: -150, keepCollider: false);
             MakeFloor("BerryField", root.transform, new Vector3(-6.6f, 0.04f, 3.6f), new Vector3(2.6f, 0.06f, 2.6f), "tile_berryfield", 2.6f, 2.6f, bias: -150, keepCollider: false);
-            MakeFloor("KitchenFloor", root.transform, new Vector3(-0.4f, 0.05f, 0f), new Vector3(5.2f, 0.08f, 6.4f), "tile_path", 5.2f, 6.4f, bias: -120, keepCollider: false);
 
             var player = MakePlayer(root.transform);
             var stack = player.GetComponent<StackHolder>();
@@ -134,8 +138,35 @@ namespace Nyangsta.Arcade
             MakeProp(deco.transform, "tree", new Vector3(8.0f, 0f, 4.6f), 2.7f);
             MakeProp(deco.transform, "bush", new Vector3(-8.2f, 0f, 1.6f), 1.0f);
             MakeProp(deco.transform, "bush", new Vector3(6.4f, 0f, 0.2f), 1.0f);
-            MakeProp(deco.transform, "fence", new Vector3(0.5f, 0f, -4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(3.6f, 0f, -4.7f), 1.4f);
+
+            // Giant World Tree prop in the outside area
+            MakeProp(deco.transform, "tree", new Vector3(-7.5f, 0f, 0.5f), 5.8f);
+
+            // Divider Wall (X = -3.6f) with doorway gaps at Z = -1.6f and Z = 2.6f
+            MakeProp(deco.transform, "fence", new Vector3(-3.6f, 0f, -3.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(-3.6f, 0f, 0.5f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(-3.6f, 0f, 4.7f), 1.4f);
+
+            // Enclose Cozy Restaurant: Top boundary wall (Z = 4.7f)
+            MakeProp(deco.transform, "fence", new Vector3(-2.7f, 0f, 4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(-0.8f, 0f, 4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(1.1f, 0f, 4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(3.0f, 0f, 4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(4.9f, 0f, 4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(6.8f, 0f, 4.7f), 1.4f);
+
+            // Enclose Cozy Restaurant: Bottom boundary wall (Z = -4.7f)
+            MakeProp(deco.transform, "fence", new Vector3(-2.7f, 0f, -4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(-0.8f, 0f, -4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(1.1f, 0f, -4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(3.0f, 0f, -4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(4.9f, 0f, -4.7f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(6.8f, 0f, -4.7f), 1.4f);
+
+            // Enclose Cozy Restaurant: Right boundary wall (X = 8.2f) with gaps at entrance (Z = -3.6f) and exit (Z = 3.6f)
+            MakeProp(deco.transform, "fence", new Vector3(8.2f, 0f, -1.2f), 1.4f);
+            MakeProp(deco.transform, "fence", new Vector3(8.2f, 0f, 1.2f), 1.4f);
+
             // Lanterns for the cozy cabin glow (matches the concept restaurant interiors).
             MakeProp(deco.transform, "lantern", new Vector3(2.0f, 0f, -3.4f), 1.3f);
             MakeProp(deco.transform, "lantern", new Vector3(6.2f, 0f, -3.4f), 1.3f);
@@ -157,7 +188,8 @@ namespace Nyangsta.Arcade
             idleGo.AddComponent<ArcadeIdleService>().Configure(hudView.ModalLayer);
 
             // Create leaf drift particles for a dynamic forest feel (Cats&Soup style)
-            CreateLeafDrift(root.transform);
+            var leafParticles = CreateLeafDrift(root.transform);
+            player.AddComponent<ZoneAtmosphereTrigger>().Configure(leafParticles, -3.6f);
 
             var cam = Camera.main;
             if (cam != null)
@@ -918,7 +950,7 @@ namespace Nyangsta.Arcade
             go.transform.localScale = new Vector3(s, s, s);
         }
 
-        private void CreateLeafDrift(Transform parent)
+        private ParticleSystem CreateLeafDrift(Transform parent)
         {
             var go = new GameObject("LeafDriftParticles");
             go.transform.SetParent(parent);
@@ -982,6 +1014,7 @@ namespace Nyangsta.Arcade
             if (leafSprite != null) psr.material.mainTexture = leafSprite.texture;
 
             ps.Play();
+            return ps;
         }
 
         private void AddStationVFX(CookStation station, GameObject stationRoot, bool isJuicer, SpriteFlipbookPlayer flipbook = null, Light grillLight = null)
@@ -1736,6 +1769,59 @@ namespace Nyangsta.Arcade
             _mesh.vertices = _deformedVertices;
             _mesh.RecalculateNormals();
             _mesh.RecalculateBounds();
+        }
+    }
+
+    public class ZoneAtmosphereTrigger : MonoBehaviour
+    {
+        private ParticleSystem _particles;
+        private float _boundaryX = -3.6f;
+        private bool _wasInside;
+
+        public void Configure(ParticleSystem particles, float boundaryX = -3.6f)
+        {
+            _particles = particles;
+            _boundaryX = boundaryX;
+            // Initialize state
+            _wasInside = transform.position.x > _boundaryX;
+            UpdateAtmosphere(_wasInside, true);
+        }
+
+        private void Update()
+        {
+            if (_particles == null) return;
+
+            bool isInside = transform.position.x > _boundaryX;
+            if (isInside != _wasInside)
+            {
+                _wasInside = isInside;
+                UpdateAtmosphere(isInside, false);
+            }
+        }
+
+        private void UpdateAtmosphere(bool isInside, bool immediate)
+        {
+            if (_particles == null) return;
+
+            if (isInside)
+            {
+                // Stop emitting. If immediate, clear existing particles too.
+                if (immediate)
+                {
+                    _particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                }
+                else
+                {
+                    _particles.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                }
+            }
+            else
+            {
+                if (!_particles.isPlaying)
+                {
+                    _particles.Play();
+                }
+            }
         }
     }
 }
