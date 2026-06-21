@@ -38,6 +38,10 @@ namespace Nyangsta.Arcade
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void EnsureArcadeBootstrap()
         {
+            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            // Only bootstrap when in Arcade scenes
+            if (!sceneName.Contains("Arcade")) return;
+
             if (Object.FindAnyObjectByType<SaveManager>() == null) return;
             // Exit early if the developer added an ArcadeSceneManager (Option A) to run their pre-designed scene.
             if (Object.FindAnyObjectByType<ArcadeSceneManager>() != null) return;
@@ -73,123 +77,493 @@ namespace Nyangsta.Arcade
             var dishPrefab = MakeStackPrefab("GrilledFishPrefab", ArcadeItemType.GrilledFish, "item_grilledfish", new Vector3(0.52f, 0.18f, 0.72f), prefabs.transform);
             var berryPrefab = MakeStackPrefab("BerryPrefab", ArcadeItemType.Berry, "item_berry", new Vector3(0.4f, 0.4f, 0.4f), prefabs.transform);
             var juicePrefab = MakeStackPrefab("BerryJuicePrefab", ArcadeItemType.BerryJuice, "item_juice", new Vector3(0.38f, 0.5f, 0.38f), prefabs.transform);
+            var mushroomPrefab = MakeStackPrefab("MushroomPrefab", ArcadeItemType.Mushroom, "item_mushroom", new Vector3(0.45f, 0.45f, 0.45f), prefabs.transform);
+            var soupPrefab = MakeStackPrefab("MushroomSoupPrefab", ArcadeItemType.MushroomSkewer, "item_soup", new Vector3(0.48f, 0.48f, 0.48f), prefabs.transform);
             var moneyPrefab = MakeMoneyPrefab(prefabs.transform);
             var customerPrefab = MakeCustomerPrefab(prefabs.transform);
 
+            // Detect current scene for layout routing
+            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            bool buildForest = sceneName.Contains("ArcadeForest");
+            bool buildRestaurant = sceneName.Contains("ArcadeRestaurant");
+
+            if (!buildForest && !buildRestaurant)
+            {
+                // Fallback to single unified scene for testing if loaded from custom editor scenes
+                buildForest = true;
+                buildRestaurant = true;
+            }
+
             // Ground keeps its box collider (the player's CharacterController stands on it)
-            // but the mesh is hidden. We pass empty string "" so no sprite tiles are spawned for it.
-            MakeFloor("Ground", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 10f), "", 17f, 10f, bias: -200, keepCollider: true);
-
-            // Visual split floors
-            MakeFloor("OutsideFloor", root.transform, new Vector3(-6.05f, 0f, 0f), new Vector3(4.9f, 0.4f, 10f), "tile_grass", 4.9f, 10f, bias: -200, keepCollider: false);
-            MakeFloor("InsideFloor", root.transform, new Vector3(2.45f, 0f, 0f), new Vector3(12.1f, 0.4f, 10f), "tile_wood", 12.1f, 10f, bias: -200, keepCollider: false);
-
-            MakeFloor("River", root.transform, new Vector3(-6.6f, 0.03f, -1.2f), new Vector3(2.4f, 0.08f, 6.4f), "tile_water", 2.4f, 6.4f, bias: -150, keepCollider: false);
-            MakeFloor("BerryField", root.transform, new Vector3(-6.6f, 0.04f, 3.6f), new Vector3(2.6f, 0.06f, 2.6f), "tile_berryfield", 2.6f, 2.6f, bias: -150, keepCollider: false);
+            // but the mesh is hidden. Expanded Z to 12f for a more spacious visual layout.
+            MakeFloor("Ground", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 12f), "", 17f, 12f, bias: -200, keepCollider: true);
 
             var player = MakePlayer(root.transform);
             var stack = player.GetComponent<StackHolder>();
 
-            // ---- Fish line (active from the start) ----
-            var fishGather = MakeGatherZone(root.transform, "GatherZone_Fish", "item_fish", fishPrefab, new Vector3(-6.6f, 0.08f, -1.6f));
-            var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.2f, 0f, -1.6f), out var grillFacility);
-            MakeUpgradeZone(root.transform, "UpgradeZone_Grill", "그릴 강화", new Vector3(0.4f, 0.08f, -1.6f), grill, grillFacility, upgrades);
+            // Setup player spawn position based on scene
+            if (buildForest && !buildRestaurant)
+            {
+                player.transform.position = new Vector3(-2.8f, 1f, 0f);
+            }
+            else if (buildRestaurant && !buildForest)
+            {
+                // Spawn near the forest-to-restaurant gateway on the left
+                player.transform.position = new Vector3(-6.5f, 1f, 0f);
+            }
 
-            // ---- Berry line (built later via a build zone) ----
-            var berryGather = MakeGatherZone(root.transform, "GatherZone_Berry", "item_berry", berryPrefab, new Vector3(-6.6f, 0.08f, 3.6f));
-            var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(-1.2f, 0f, 1.8f), out var juicerFacility);
-            // The berry line is locked behind a build zone below (grouped + deactivated there).
+            // Restore stack contents if any were preserved during transition
+            if (ArcadeStackPreserver.HasSavedStack())
+            {
+                ArcadeStackPreserver.RestoreStack(stack, fishPrefab, berryPrefab, mushroomPrefab, dishPrefab, juicePrefab, soupPrefab);
+            }
 
-            // ---- Tables: table 1 open, tables 2 & 3 behind build zones ----
-            var tables = new List<TableZone>();
-            tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, -2.4f), true));
-            tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, 0f), false));
-            tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, 2.4f), false));
-            var tableArray = tables.ToArray();
+            // --- Forest / Outdoor Scene Layout ---
+            if (buildForest)
+            {
+                if (buildRestaurant)
+                {
+                    // Unified single scene floor layouts
+                    MakeFloor("OutsideFloor", root.transform, new Vector3(-6.05f, 0f, 0f), new Vector3(4.9f, 0.4f, 12f), "tile_grass", 4.9f, 12f, bias: -200, keepCollider: false);
+                }
+                else
+                {
+                    // Full Forest scene grass layout
+                    MakeFloor("OutsideFloor", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 12f), "tile_grass", 17f, 12f, bias: -200, keepCollider: false);
+                }
 
-            MakeBuildZone(root.transform, "BuildZone_Table2", 30, tables[1].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 0f), "테이블 2", progress);
-            MakeBuildZone(root.transform, "BuildZone_Table3", 120, tables[2].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 2.4f), "테이블 3", progress);
+                // Three outdoor gathering floors stacked vertically along the Z axis
+                MakeFloor("River", root.transform, new Vector3(-6.6f, 0.03f, -3.2f), new Vector3(2.4f, 0.08f, 4.4f), "tile_water", 2.4f, 4.4f, bias: -150, keepCollider: false);
+                MakeFloor("BerryField", root.transform, new Vector3(-6.6f, 0.04f, 0.8f), new Vector3(2.6f, 0.06f, 2.6f), "tile_berryfield", 2.6f, 2.6f, bias: -150, keepCollider: false);
+                MakeFloor("CaveFloor", root.transform, new Vector3(-6.6f, 0.05f, 4.2f), new Vector3(2.6f, 0.06f, 2.6f), "tile_cave", 2.6f, 2.6f, bias: -150, keepCollider: false);
 
-            // Build zone that unlocks the whole berry production line at once.
-            // Reparent the station/gather *roots* (not the zone children) so the
-            // bodies and output slots travel with the group.
-            var berryLine = new GameObject("BerryLineGroup");
-            berryLine.transform.SetParent(root.transform);
-            berryGather.transform.SetParent(berryLine.transform, true);
-            juicer.transform.parent.SetParent(berryLine.transform, true);
-            // Juicer upgrade pad lives inside the group, so it locks/unlocks with the line.
-            MakeUpgradeZone(berryLine.transform, "UpgradeZone_Juicer", "주스기 강화", new Vector3(0.4f, 0.08f, 1.8f), juicer, juicerFacility, upgrades);
-            berryLine.SetActive(false);
-            MakeBuildZone(root.transform, "BuildZone_BerryLine", 80, berryLine, new Vector3(-3.6f, 0.08f, 3.2f), "베리 라인", progress);
+                var fishGather = MakeGatherZone(root.transform, "GatherZone_Fish", "item_fish", fishPrefab, new Vector3(-6.6f, 0.08f, -3.2f));
+                var berryGather = MakeGatherZone(root.transform, "GatherZone_Berry", "item_berry", berryPrefab, new Vector3(-6.6f, 0.08f, 0.8f));
+                var mushroomGather = MakeGatherZone(root.transform, "GatherZone_Mushroom", "item_mushroom", mushroomPrefab, new Vector3(-6.6f, 0.08f, 4.2f));
 
-            MakeCustomerSpawner(root.transform, customerPrefab, tableArray, grill, juicer);
+                if (!buildRestaurant)
+                {
+                    // Split Forest Scene: Create 3 Senders DropBox to store harvested resources
+                    
+                    // Fish DropBox Sender
+                    var boxFishGo = new GameObject("DropBox_Fish");
+                    boxFishGo.transform.SetParent(root.transform);
+                    boxFishGo.transform.position = new Vector3(-1.2f, 0f, -2.4f);
+                    AttachStandingSprite(boxFishGo, "counter", 1.2f);
+                    var boxFishZone = MakeZone("DropBoxZone_Fish", boxFishGo.transform, new Vector3(0f, 0.08f, -0.6f), new Vector3(1.2f, 0.05f, 0.8f), new Color(0.1f, 0.8f, 0.8f, 0.5f), true);
+                    AttachGlowPad(boxFishZone, new Color(0.1f, 0.8f, 0.8f, 0.35f), 1.3f);
+                    var dropBoxFish = boxFishZone.AddComponent<ArcadeDropBox>();
+                    dropBoxFish.Configure(false, ArcadeItemType.Fish, fishPrefab);
+                    var bubbleFish = WorldBubble.Create(boxFishZone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+                    bubbleFish.SetIcon(ArcadeSprites.Get("item_fish"), 0.4f, new Vector2(0f, 0.06f));
 
-            // ---- Hire zones: automate each production line ----
-            MakeHireZone(root.transform, 150, new Vector3(-3.6f, 0.08f, -3.6f),
-                fishGather, grill, tableArray, ArcadeItemType.Fish, ArcadeItemType.GrilledFish, player.transform.position, "생선 직원", progress);
-            MakeHireZone(root.transform, 220, new Vector3(-3.6f, 0.08f, 4.4f),
-                berryGather, juicer, tableArray, ArcadeItemType.Berry, ArcadeItemType.BerryJuice, player.transform.position, "베리 직원", progress);
+                    // Berry DropBox Sender
+                    var boxBerryGo = new GameObject("DropBox_Berry");
+                    boxBerryGo.transform.SetParent(root.transform);
+                    boxBerryGo.transform.position = new Vector3(-1.2f, 0f, 0.8f);
+                    AttachStandingSprite(boxBerryGo, "counter", 1.2f);
+                    var boxBerryZone = MakeZone("DropBoxZone_Berry", boxBerryGo.transform, new Vector3(0f, 0.08f, -0.6f), new Vector3(1.2f, 0.05f, 0.8f), new Color(0.1f, 0.8f, 0.8f, 0.5f), true);
+                    AttachGlowPad(boxBerryZone, new Color(0.1f, 0.8f, 0.8f, 0.35f), 1.3f);
+                    var dropBoxBerry = boxBerryZone.AddComponent<ArcadeDropBox>();
+                    dropBoxBerry.Configure(false, ArcadeItemType.Berry, berryPrefab);
+                    var bubbleBerry = WorldBubble.Create(boxBerryZone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+                    bubbleBerry.SetIcon(ArcadeSprites.Get("item_berry"), 0.4f, new Vector2(0f, 0.06f));
 
-            // ---- Decorative props around the edges (storybook framing) ----
+                    // Mushroom DropBox Sender
+                    var boxMushroomGo = new GameObject("DropBox_Mushroom");
+                    boxMushroomGo.transform.SetParent(root.transform);
+                    boxMushroomGo.transform.position = new Vector3(-1.2f, 0f, 4.2f);
+                    AttachStandingSprite(boxMushroomGo, "counter", 1.2f);
+                    var boxMushroomZone = MakeZone("DropBoxZone_Mushroom", boxMushroomGo.transform, new Vector3(0f, 0.08f, -0.6f), new Vector3(1.2f, 0.05f, 0.8f), new Color(0.1f, 0.8f, 0.8f, 0.5f), true);
+                    AttachGlowPad(boxMushroomZone, new Color(0.1f, 0.8f, 0.8f, 0.35f), 1.3f);
+                    var dropBoxMushroom = boxMushroomZone.AddComponent<ArcadeDropBox>();
+                    dropBoxMushroom.Configure(false, ArcadeItemType.Mushroom, mushroomPrefab);
+                    var bubbleMushroom = WorldBubble.Create(boxMushroomZone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+                    bubbleMushroom.SetIcon(ArcadeSprites.Get("item_mushroom"), 0.4f, new Vector2(0f, 0.06f));
+
+                    // Scene Gate to Restaurant (on the right)
+                    var gateGo = new GameObject("SceneGate_ToRestaurant");
+                    gateGo.transform.SetParent(root.transform);
+                    gateGo.transform.position = new Vector3(7.5f, 0f, 0f);
+                    var gateCol = gateGo.AddComponent<BoxCollider>();
+                    gateCol.size = new Vector3(1.0f, 2.0f, 4.0f);
+                    var gate = gateGo.AddComponent<ArcadeSceneGate>();
+                    gate.ConfigureGate("ArcadeRestaurant", 1.5f);
+                    AttachStandingSprite(gateGo, "fireplace", 2.2f);
+                    var gateLabel = MakeLabel("식당 입장", gateGo.transform, new Vector3(0f, 2.2f, -0.5f));
+                    gateLabel.fontSize = 32;
+
+                    // Hire Zones for Forest: automates gathering items and dropping them off to DropBox Senders
+                    MakeHireZone(root.transform, 150, new Vector3(-3.6f, 0.08f, -2.4f),
+                        fishGather.transform, boxFishZone.transform, null, ArcadeItemType.Fish, ArcadeItemType.None, player.transform.position, "생선 채집원", progress);
+
+                    // Berry automation group
+                    var berryLine = new GameObject("BerryLineGroup");
+                    berryLine.transform.SetParent(root.transform);
+                    berryGather.transform.SetParent(berryLine.transform, true);
+                    boxBerryGo.transform.SetParent(berryLine.transform, true);
+                    berryLine.SetActive(false);
+                    MakeBuildZone(root.transform, "BuildZone_BerryLine", 80, berryLine, new Vector3(-3.6f, 0.08f, 0.8f), "베리 라인", progress);
+
+                    MakeHireZone(root.transform, 220, new Vector3(-3.6f, 0.08f, 0.0f),
+                        berryGather.transform, boxBerryZone.transform, null, ArcadeItemType.Berry, ArcadeItemType.None, player.transform.position, "베리 채집원", progress);
+
+                    // Mushroom automation group
+                    var mushroomLine = new GameObject("MushroomLineGroup");
+                    mushroomLine.transform.SetParent(root.transform);
+                    mushroomGather.transform.SetParent(mushroomLine.transform, true);
+                    boxMushroomGo.transform.SetParent(mushroomLine.transform, true);
+                    mushroomLine.SetActive(false);
+                    MakeBuildZone(root.transform, "BuildZone_MushroomLine", 180, mushroomLine, new Vector3(-3.6f, 0.08f, 3.8f), "가마솥 라인", progress);
+
+                    MakeHireZone(root.transform, 280, new Vector3(-3.6f, 0.08f, 2.4f),
+                        mushroomGather.transform, boxMushroomZone.transform, null, ArcadeItemType.Mushroom, ArcadeItemType.None, player.transform.position, "버섯 채집원", progress);
+                }
+            }
+
+            // --- Restaurant / Indoor Scene Layout ---
+            if (buildRestaurant)
+            {
+                if (buildForest)
+                {
+                    // Unified single scene floor layouts
+                    MakeFloor("InsideFloor", root.transform, new Vector3(2.45f, 0f, 0f), new Vector3(12.1f, 0.4f, 12f), "tile_wood", 12.1f, 12f, bias: -200, keepCollider: false);
+                }
+                else
+                {
+                    // Full Restaurant scene wood layout
+                    MakeFloor("InsideFloor", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 12f), "tile_wood", 17f, 12f, bias: -200, keepCollider: false);
+                }
+
+                // Split Restaurant Scene: Create 3 Receivers DropBox to pull harvested resources
+                GameObject boxFishRecvGo = null, boxBerryRecvGo = null, boxMushroomRecvGo = null;
+                Transform boxFishRecvZone = null, boxBerryRecvZone = null, boxMushroomRecvZone = null;
+
+                if (!buildForest)
+                {
+                    // Fish DropBox Receiver
+                    boxFishRecvGo = new GameObject("DropBox_Fish_Recv");
+                    boxFishRecvGo.transform.SetParent(root.transform);
+                    boxFishRecvGo.transform.position = new Vector3(-6.6f, 0f, -3.2f);
+                    AttachStandingSprite(boxFishRecvGo, "counter", 1.2f);
+                    boxFishRecvZone = MakeZone("DropBoxZone_Fish_Recv", boxFishRecvGo.transform, new Vector3(0f, 0.08f, -0.6f), new Vector3(1.2f, 0.05f, 0.8f), new Color(0.8f, 0.8f, 0.1f, 0.5f), true).transform;
+                    AttachGlowPad(boxFishRecvZone.gameObject, new Color(0.8f, 0.8f, 0.1f, 0.35f), 1.3f);
+                    var dropBoxFishRecv = boxFishRecvZone.gameObject.AddComponent<ArcadeDropBox>();
+                    dropBoxFishRecv.Configure(true, ArcadeItemType.Fish, fishPrefab);
+                    var bubbleFishRecv = WorldBubble.Create(boxFishRecvZone, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+                    bubbleFishRecv.SetIcon(ArcadeSprites.Get("item_fish"), 0.4f, new Vector2(0f, 0.06f));
+
+                    // Berry DropBox Receiver
+                    boxBerryRecvGo = new GameObject("DropBox_Berry_Recv");
+                    boxBerryRecvGo.transform.SetParent(root.transform);
+                    boxBerryRecvGo.transform.position = new Vector3(-6.6f, 0f, 0.8f);
+                    AttachStandingSprite(boxBerryRecvGo, "counter", 1.2f);
+                    boxBerryRecvZone = MakeZone("DropBoxZone_Berry_Recv", boxBerryRecvGo.transform, new Vector3(0f, 0.08f, -0.6f), new Vector3(1.2f, 0.05f, 0.8f), new Color(0.8f, 0.8f, 0.1f, 0.5f), true).transform;
+                    AttachGlowPad(boxBerryRecvZone.gameObject, new Color(0.8f, 0.8f, 0.1f, 0.35f), 1.3f);
+                    var dropBoxBerryRecv = boxBerryRecvZone.gameObject.AddComponent<ArcadeDropBox>();
+                    dropBoxBerryRecv.Configure(true, ArcadeItemType.Berry, berryPrefab);
+                    var bubbleBerryRecv = WorldBubble.Create(boxBerryRecvZone, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+                    bubbleBerryRecv.SetIcon(ArcadeSprites.Get("item_berry"), 0.4f, new Vector2(0f, 0.06f));
+
+                    // Mushroom DropBox Receiver
+                    boxMushroomRecvGo = new GameObject("DropBox_Mushroom_Recv");
+                    boxMushroomRecvGo.transform.SetParent(root.transform);
+                    boxMushroomRecvGo.transform.position = new Vector3(-6.6f, 0f, 4.2f);
+                    AttachStandingSprite(boxMushroomRecvGo, "counter", 1.2f);
+                    boxMushroomRecvZone = MakeZone("DropBoxZone_Mushroom_Recv", boxMushroomRecvGo.transform, new Vector3(0f, 0.08f, -0.6f), new Vector3(1.2f, 0.05f, 0.8f), new Color(0.8f, 0.8f, 0.1f, 0.5f), true).transform;
+                    AttachGlowPad(boxMushroomRecvZone.gameObject, new Color(0.8f, 0.8f, 0.1f, 0.35f), 1.3f);
+                    var dropBoxMushroomRecv = boxMushroomRecvZone.gameObject.AddComponent<ArcadeDropBox>();
+                    dropBoxMushroomRecv.Configure(true, ArcadeItemType.Mushroom, mushroomPrefab);
+                    var bubbleMushroomRecv = WorldBubble.Create(boxMushroomRecvZone, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
+                    bubbleMushroomRecv.SetIcon(ArcadeSprites.Get("item_mushroom"), 0.4f, new Vector2(0f, 0.06f));
+                }
+
+                // Kitchen and Cooking stations (Always exist in Restaurant)
+                var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.2f, 0f, -2.4f), out var grillFacility);
+                MakeUpgradeZone(root.transform, "UpgradeZone_Grill", "그릴 강화", new Vector3(0.4f, 0.08f, -2.4f), grill, grillFacility, upgrades);
+
+                var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(-1.2f, 0f, 0.8f), out var juicerFacility);
+                var juicerUpgradeZone = new GameObject("UpgradeZone_Juicer_Holder");
+                juicerUpgradeZone.transform.SetParent(root.transform);
+                MakeUpgradeZone(juicerUpgradeZone.transform, "UpgradeZone_Juicer", "주스기 강화", new Vector3(0.4f, 0.08f, 0.8f), juicer, juicerFacility, upgrades);
+
+                var soupPot = MakeGrill(root.transform, "SoupPot", soupPrefab, ArcadeItemType.Mushroom, new Vector3(-1.2f, 0f, 4.2f), out var soupPotFacility);
+                var soupPotUpgradeZone = new GameObject("UpgradeZone_SoupPot_Holder");
+                soupPotUpgradeZone.transform.SetParent(root.transform);
+                MakeUpgradeZone(soupPotUpgradeZone.transform, "UpgradeZone_SoupPot", "가마솥 강화", new Vector3(0.4f, 0.08f, 4.2f), soupPot, soupPotFacility, upgrades);
+
+                // Tables
+                var tables = new List<TableZone>();
+                tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, -2.4f), true));
+                tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, 0f), false));
+                tables.Add(MakeTable(root.transform, moneyPrefab, new Vector3(4.4f, 0f, 2.4f), false));
+                var tableArray = tables.ToArray();
+
+                var carpet1 = new GameObject("Carpet_1"); carpet1.transform.SetParent(root.transform); carpet1.transform.position = new Vector3(4.4f, 0.015f, -2.4f); AttachGroundSprite(carpet1, "carpet", 2.3f, 1.6f, -95);
+                var carpet2 = new GameObject("Carpet_2"); carpet2.transform.SetParent(root.transform); carpet2.transform.position = new Vector3(4.4f, 0.015f, 0f); AttachGroundSprite(carpet2, "carpet", 2.3f, 1.6f, -95);
+                var carpet3 = new GameObject("Carpet_3"); carpet3.transform.SetParent(root.transform); carpet3.transform.position = new Vector3(4.4f, 0.015f, 2.4f); AttachGroundSprite(carpet3, "carpet", 2.3f, 1.6f, -95);
+
+                MakeBuildZone(root.transform, "BuildZone_Table2", 30, tables[1].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 0f), "테이블 2", progress);
+                MakeBuildZone(root.transform, "BuildZone_Table3", 120, tables[2].transform.parent.gameObject, new Vector3(2.3f, 0.08f, 2.4f), "테이블 3", progress);
+
+                // Lock lines by build zones in Restaurant
+                if (!buildForest)
+                {
+                    // Berry cooking group (DropBox Receiver + Juicer + upgrades)
+                    var berryCookLine = new GameObject("BerryCookLineGroup");
+                    berryCookLine.transform.SetParent(root.transform);
+                    boxBerryRecvGo.transform.SetParent(berryCookLine.transform, true);
+                    juicer.transform.parent.SetParent(berryCookLine.transform, true);
+                    juicerUpgradeZone.transform.SetParent(berryCookLine.transform, true);
+                    berryCookLine.SetActive(false);
+                    MakeBuildZone(root.transform, "BuildZone_BerryLine", 80, berryCookLine, new Vector3(-3.6f, 0.08f, 0.8f), "베리 요리", progress);
+
+                    // Mushroom cooking group (DropBox Receiver + SoupPot + upgrades)
+                    var mushroomCookLine = new GameObject("MushroomCookLineGroup");
+                    mushroomCookLine.transform.SetParent(root.transform);
+                    boxMushroomRecvGo.transform.SetParent(mushroomCookLine.transform, true);
+                    soupPot.transform.parent.SetParent(mushroomCookLine.transform, true);
+                    soupPotUpgradeZone.transform.SetParent(mushroomCookLine.transform, true);
+                    mushroomCookLine.SetActive(false);
+                    MakeBuildZone(root.transform, "BuildZone_MushroomLine", 180, mushroomCookLine, new Vector3(-3.6f, 0.08f, 3.8f), "가마솥 요리", progress);
+
+                    // Scene Gate to Forest (on the left)
+                    var gateGo = new GameObject("SceneGate_ToForest");
+                    gateGo.transform.SetParent(root.transform);
+                    gateGo.transform.position = new Vector3(-7.5f, 0f, 0f);
+                    var gateCol = gateGo.AddComponent<BoxCollider>();
+                    gateCol.size = new Vector3(1.0f, 2.0f, 4.0f);
+                    var gate = gateGo.AddComponent<ArcadeSceneGate>();
+                    gate.ConfigureGate("ArcadeForest", 1.5f);
+                    AttachStandingSprite(gateGo, "fireplace", 2.2f);
+                    var gateLabel = MakeLabel("야외 이동", gateGo.transform, new Vector3(0f, 2.2f, -0.5f));
+                    gateLabel.fontSize = 32;
+
+                    // Hired staff for Restaurant: pull raw from Receivers, cook at station, serve to tables
+                    MakeHireZone(root.transform, 150, new Vector3(-3.6f, 0.08f, -2.4f),
+                        boxFishRecvZone, grill.transform, tableArray, ArcadeItemType.Fish, ArcadeItemType.GrilledFish, player.transform.position, "생선 요리원", progress);
+
+                    MakeHireZone(root.transform, 220, new Vector3(-3.6f, 0.08f, 0.0f),
+                        boxBerryRecvZone, juicer.transform, tableArray, ArcadeItemType.Berry, ArcadeItemType.BerryJuice, player.transform.position, "베리 요리원", progress);
+
+                    MakeHireZone(root.transform, 280, new Vector3(-3.6f, 0.08f, 2.4f),
+                        boxMushroomRecvZone, soupPot.transform, tableArray, ArcadeItemType.Mushroom, ArcadeItemType.MushroomSkewer, player.transform.position, "버섯 요리원", progress);
+                }
+                else
+                {
+                    // Unified single scene automation (original code)
+                    // Hired staff directly loops gather -> cook -> serve
+                    // Find gather zones built in the forest part of this unified scene
+                    var fishGather = root.transform.Find("GatherZone_Fish");
+                    var berryGather = root.transform.Find("BerryLineGroup/GatherZone_Berry");
+                    var mushroomGather = root.transform.Find("MushroomLineGroup/GatherZone_Mushroom");
+
+                    // Build zones for berry / mushroom lines (already structured under buildForest block)
+                    // If unified, the original MakeHireZone works:
+                    if (fishGather != null)
+                        MakeHireZone(root.transform, 150, new Vector3(-3.6f, 0.08f, -2.4f),
+                            fishGather, grill.transform, tableArray, ArcadeItemType.Fish, ArcadeItemType.GrilledFish, player.transform.position, "생선 직원", progress);
+                    
+                    if (berryGather != null)
+                        MakeHireZone(root.transform, 220, new Vector3(-3.6f, 0.08f, 0.0f),
+                            berryGather, juicer.transform, tableArray, ArcadeItemType.Berry, ArcadeItemType.BerryJuice, player.transform.position, "베리 직원", progress);
+
+                    if (mushroomGather != null)
+                        MakeHireZone(root.transform, 280, new Vector3(-3.6f, 0.08f, 2.4f),
+                            mushroomGather, soupPot.transform, tableArray, ArcadeItemType.Mushroom, ArcadeItemType.MushroomSkewer, player.transform.position, "버섯 직원", progress);
+                }
+
+                MakeCustomerSpawner(root.transform, customerPrefab, tableArray, grill, juicer, soupPot);
+            }
+
+            // --- Common / Shared Scene Elements (HUD, Camera, Particles, Props) ---
+
+            // Decorative props (Storybook cozy layout)
             var deco = new GameObject("Decor");
             deco.transform.SetParent(root.transform);
-            MakeProp(deco.transform, "tree", new Vector3(-8.0f, 0f, -4.4f), 2.6f);
-            MakeProp(deco.transform, "tree", new Vector3(7.6f, 0f, -4.6f), 2.4f);
-            MakeProp(deco.transform, "tree", new Vector3(8.0f, 0f, 4.6f), 2.7f);
-            MakeProp(deco.transform, "bush", new Vector3(-8.2f, 0f, 1.6f), 1.0f);
-            MakeProp(deco.transform, "bush", new Vector3(6.4f, 0f, 0.2f), 1.0f);
 
-            // Giant World Tree prop in the outside area
-            MakeProp(deco.transform, "tree", new Vector3(-7.5f, 0f, 0.5f), 5.8f);
+            if (buildForest && buildRestaurant)
+            {
+                // Unified: Original prop placements
+                MakeProp(deco.transform, "tree", new Vector3(-8.0f, 0f, -5.2f), 2.6f);
+                MakeProp(deco.transform, "tree", new Vector3(7.6f, 0f, -5.4f), 2.4f);
+                MakeProp(deco.transform, "tree", new Vector3(8.0f, 0f, 5.4f), 2.7f);
+                MakeProp(deco.transform, "bush", new Vector3(-8.2f, 0f, 2.0f), 1.0f);
+                MakeProp(deco.transform, "bush", new Vector3(6.4f, 0f, 0.2f), 1.0f);
+                MakeProp(deco.transform, "tree", new Vector3(-7.5f, 0f, 0.5f), 5.8f);
 
-            // Divider Wall (X = -3.6f) with doorway gaps at Z = -1.6f and Z = 2.6f
-            MakeProp(deco.transform, "fence", new Vector3(-3.6f, 0f, -3.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(-3.6f, 0f, 0.5f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(-3.6f, 0f, 4.7f), 1.4f);
+                // Divider Wall
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, -5.2f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, -3.6f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, -0.8f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, 0.8f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, 3.6f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, 5.2f), 1.8f);
 
-            // Enclose Cozy Restaurant: Top boundary wall (Z = 4.7f)
-            MakeProp(deco.transform, "fence", new Vector3(-2.7f, 0f, 4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(-0.8f, 0f, 4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(1.1f, 0f, 4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(3.0f, 0f, 4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(4.9f, 0f, 4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(6.8f, 0f, 4.7f), 1.4f);
+                // Cabin Enclosure Walls (Z = 5.7f, -5.7f, X = 8.2f)
+                MakeProp(deco.transform, "wall", new Vector3(-2.7f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-0.9f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(0.9f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(2.7f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(4.5f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(6.3f, 0f, 5.7f), 1.8f);
 
-            // Enclose Cozy Restaurant: Bottom boundary wall (Z = -4.7f)
-            MakeProp(deco.transform, "fence", new Vector3(-2.7f, 0f, -4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(-0.8f, 0f, -4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(1.1f, 0f, -4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(3.0f, 0f, -4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(4.9f, 0f, -4.7f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(6.8f, 0f, -4.7f), 1.4f);
+                MakeProp(deco.transform, "wall", new Vector3(-2.7f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-0.9f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(0.9f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(2.7f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(4.5f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(6.3f, 0f, -5.7f), 1.8f);
 
-            // Enclose Cozy Restaurant: Right boundary wall (X = 8.2f) with gaps at entrance (Z = -3.6f) and exit (Z = 3.6f)
-            MakeProp(deco.transform, "fence", new Vector3(8.2f, 0f, -1.2f), 1.4f);
-            MakeProp(deco.transform, "fence", new Vector3(8.2f, 0f, 1.2f), 1.4f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, -2.4f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, -0.8f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, 0.8f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, 2.4f), 1.8f);
 
-            // Lanterns for the cozy cabin glow (matches the concept restaurant interiors).
-            MakeProp(deco.transform, "lantern", new Vector3(2.0f, 0f, -3.4f), 1.3f);
-            MakeProp(deco.transform, "lantern", new Vector3(6.2f, 0f, -3.4f), 1.3f);
-            MakeProp(deco.transform, "lantern", new Vector3(-3.4f, 0f, -1.0f), 1.3f);
+                // Cozy elements
+                var fireplaceGo = new GameObject("Fireplace");
+                fireplaceGo.transform.SetParent(root.transform);
+                fireplaceGo.transform.position = new Vector3(2.7f, 0f, 5.5f);
+                AttachStandingSprite(fireplaceGo, "fireplace", 2.2f);
+                var fpLightGo = new GameObject("FireplaceLight");
+                fpLightGo.transform.SetParent(fireplaceGo.transform, false);
+                fpLightGo.transform.localPosition = new Vector3(0f, 0.4f, -0.3f);
+                var fpLight = fpLightGo.AddComponent<Light>();
+                fpLight.type = LightType.Point;
+                fpLight.color = new Color(1.0f, 0.45f, 0.1f);
+                fpLight.range = 5.5f;
+                fpLight.intensity = 2.0f;
+                fpLightGo.AddComponent<LightFlicker>();
+
+                var counterGo = new GameObject("RegisterCounter");
+                counterGo.transform.SetParent(root.transform);
+                counterGo.transform.position = new Vector3(5.8f, 0f, -4.5f);
+                AttachStandingSprite(counterGo, "counter", 1.6f);
+
+                var plantGo1 = new GameObject("IndoorPlant_1");
+                plantGo1.transform.SetParent(root.transform);
+                plantGo1.transform.position = new Vector3(-2.8f, 0f, 5.3f);
+                AttachStandingSprite(plantGo1, "plant", 1.6f);
+
+                var plantGo2 = new GameObject("IndoorPlant_2");
+                plantGo2.transform.SetParent(root.transform);
+                plantGo2.transform.position = new Vector3(7.6f, 0f, 3.2f);
+                AttachStandingSprite(plantGo2, "plant", 1.6f);
+
+                MakeProp(deco.transform, "lantern", new Vector3(2.0f, 0f, -4.2f), 1.3f);
+                MakeProp(deco.transform, "lantern", new Vector3(6.2f, 0f, -4.2f), 1.3f);
+                MakeProp(deco.transform, "lantern", new Vector3(-3.4f, 0f, -1.8f), 1.3f);
+            }
+            else if (buildForest)
+            {
+                // Split Forest Scene decorations: natural trees, bushes
+                MakeProp(deco.transform, "tree", new Vector3(-8.0f, 0f, -5.2f), 2.6f);
+                MakeProp(deco.transform, "tree", new Vector3(8.0f, 0f, -5.2f), 2.5f);
+                MakeProp(deco.transform, "tree", new Vector3(8.0f, 0f, 5.2f), 2.7f);
+                MakeProp(deco.transform, "bush", new Vector3(-8.2f, 0f, 2.0f), 1.0f);
+                MakeProp(deco.transform, "bush", new Vector3(6.4f, 0f, 0.2f), 1.0f);
+                MakeProp(deco.transform, "tree", new Vector3(-7.5f, 0f, 0.5f), 5.8f);
+
+                // Right boundary wall divider representing log cabin entrance facade
+                MakeProp(deco.transform, "wall", new Vector3(6.8f, 0f, -5.2f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(6.8f, 0f, -3.6f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(6.8f, 0f, -2.0f), 1.8f);
+                // Doorway gap for gate at Z = 0
+                MakeProp(deco.transform, "wall", new Vector3(6.8f, 0f, 2.0f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(6.8f, 0f, 3.6f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(6.8f, 0f, 5.2f), 1.8f);
+            }
+            else if (buildRestaurant)
+            {
+                // Split Restaurant Scene decorations: indoor elements, log-cabin outer walls
+                
+                // Left boundary entrance wall (matches forest exit facade)
+                MakeProp(deco.transform, "wall", new Vector3(-6.8f, 0f, -5.2f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-6.8f, 0f, -3.6f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-6.8f, 0f, -2.0f), 1.8f);
+                // Doorway gap for gate at Z = 0
+                MakeProp(deco.transform, "wall", new Vector3(-6.8f, 0f, 2.0f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-6.8f, 0f, 3.6f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-6.8f, 0f, 5.2f), 1.8f);
+
+                // Cabin Enclosure Walls (Z = 5.7f, -5.7f, X = 8.2f)
+                MakeProp(deco.transform, "wall", new Vector3(-5.4f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-1.8f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(0.0f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(1.8f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(3.6f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(5.4f, 0f, 5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(7.2f, 0f, 5.7f), 1.8f);
+
+                MakeProp(deco.transform, "wall", new Vector3(-5.4f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-3.6f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(-1.8f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(0.0f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(1.8f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(3.6f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(5.4f, 0f, -5.7f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(7.2f, 0f, -5.7f), 1.8f);
+
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, -2.4f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, -0.8f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, 0.8f), 1.8f);
+                MakeProp(deco.transform, "wall", new Vector3(8.2f, 0f, 2.4f), 1.8f);
+
+                // Cozy elements
+                var fireplaceGo = new GameObject("Fireplace");
+                fireplaceGo.transform.SetParent(root.transform);
+                fireplaceGo.transform.position = new Vector3(2.7f, 0f, 5.5f);
+                AttachStandingSprite(fireplaceGo, "fireplace", 2.2f);
+                var fpLightGo = new GameObject("FireplaceLight");
+                fpLightGo.transform.SetParent(fireplaceGo.transform, false);
+                fpLightGo.transform.localPosition = new Vector3(0f, 0.4f, -0.3f);
+                var fpLight = fpLightGo.AddComponent<Light>();
+                fpLight.type = LightType.Point;
+                fpLight.color = new Color(1.0f, 0.45f, 0.1f);
+                fpLight.range = 5.5f;
+                fpLight.intensity = 2.0f;
+                fpLightGo.AddComponent<LightFlicker>();
+
+                var counterGo = new GameObject("RegisterCounter");
+                counterGo.transform.SetParent(root.transform);
+                counterGo.transform.position = new Vector3(5.8f, 0f, -4.5f);
+                AttachStandingSprite(counterGo, "counter", 1.6f);
+
+                var plantGo1 = new GameObject("IndoorPlant_1");
+                plantGo1.transform.SetParent(root.transform);
+                plantGo1.transform.position = new Vector3(-2.8f, 0f, 5.3f);
+                AttachStandingSprite(plantGo1, "plant", 1.6f);
+
+                var plantGo2 = new GameObject("IndoorPlant_2");
+                plantGo2.transform.SetParent(root.transform);
+                plantGo2.transform.position = new Vector3(7.6f, 0f, 3.2f);
+                AttachStandingSprite(plantGo2, "plant", 1.6f);
+
+                MakeProp(deco.transform, "lantern", new Vector3(2.0f, 0f, -4.2f), 1.3f);
+                MakeProp(deco.transform, "lantern", new Vector3(6.2f, 0f, -4.2f), 1.3f);
+                MakeProp(deco.transform, "lantern", new Vector3(-3.4f, 0f, -1.8f), 1.3f);
+            }
 
             var hud = new GameObject("ArcadeHUD");
             var hudView = hud.AddComponent<ArcadeHUD>();
             hudView.Configure(stack);
 
-            // Visible mobile joystick, wired into the player controller.
             var joyGo = new GameObject("ArcadeJoystick");
             var joystick = joyGo.AddComponent<ArcadeJoystick>();
             joystick.AttachVisual(hudView.OverlayLayer);
             player.GetComponent<ArcadePlayerController>().Configure(joystick);
 
-            // Offline income: hired staff earn while away; shows the settlement popup.
             var idleGo = new GameObject("ArcadeIdleService");
             idleGo.transform.SetParent(root.transform);
             idleGo.AddComponent<ArcadeIdleService>().Configure(hudView.ModalLayer);
 
-            // Create leaf drift particles for a dynamic forest feel (Cats&Soup style)
-            var leafParticles = CreateLeafDrift(root.transform);
-            player.AddComponent<ZoneAtmosphereTrigger>().Configure(leafParticles, -3.6f);
+            // Leaf drift particles (only in Forest scene)
+            if (buildForest)
+            {
+                var leafParticles = CreateLeafDrift(root.transform);
+                player.AddComponent<ZoneAtmosphereTrigger>().Configure(leafParticles, buildRestaurant ? -3.6f : 999f);
+            }
 
             var cam = Camera.main;
             if (cam != null)
@@ -199,13 +573,21 @@ namespace Nyangsta.Arcade
                 follow.Configure(player.transform);
             }
 
-            // First-session arrow guide (FTUE); skipped once completed and saved.
-            if (!saveData.arcadeTutorialDone)
+            // FTUE guide (skipped in Restaurant, or if saved as completed)
+            if (buildForest && !saveData.arcadeTutorialDone)
             {
                 var tutorial = new GameObject("ArcadeTutorialDirector");
                 tutorial.transform.SetParent(root.transform);
-                tutorial.AddComponent<ArcadeTutorialDirector>()
-                    .Configure(stack, fishGather.transform, grill.transform, tables[0].transform);
+                
+                // If Restaurant is in another scene, grill is not present, so we point guide to the Forest DropBox
+                var guideTarget = root.transform.Find("DropBox_Fish/DropBoxZone_Fish") ?? root.transform.Find("Station_Grill/CookZone_Grill");
+                var fishGather = root.transform.Find("GatherZone_Fish");
+
+                if (fishGather != null && guideTarget != null)
+                {
+                    tutorial.AddComponent<ArcadeTutorialDirector>()
+                        .Configure(stack, fishGather, guideTarget, null);
+                }
             }
         }
 
@@ -259,8 +641,11 @@ namespace Nyangsta.Arcade
             stationRoot.transform.SetParent(parent);
             stationRoot.transform.position = pos;
 
-            // Facility sprite (grill or juicer) stands on the ground at the station root.
-            string facilityKey = input == ArcadeItemType.Berry ? "juicer" : "grill";
+            // Facility sprite (grill, juicer, or soup_pot) stands on the ground at the station root.
+            string facilityKey = "grill";
+            if (input == ArcadeItemType.Berry) facilityKey = "juicer";
+            else if (input == ArcadeItemType.Mushroom) facilityKey = "soup_pot";
+
             var facility = new GameObject("FacilitySprite");
             facility.transform.SetParent(stationRoot.transform, false);
             var facilityBb = AttachStandingSprite(facility, facilityKey, 1.7f, footOffsetY: 0f, bias: 0);
@@ -268,9 +653,9 @@ namespace Nyangsta.Arcade
             var zone = MakeZone($"CookZone_{label}", stationRoot.transform, new Vector3(0f, 0.08f, -0.9f), new Vector3(1.35f, 0.05f, 1.0f), new Color(1f, 0.65f, 0.2f, 0.55f), true);
             AttachGlowPad(zone, new Color(1f, 0.65f, 0.25f, 0.35f), 1.5f); // warm orange glow
 
-            // Add warm glowing fire light for the campfire grill (Cats&Soup style)
+            // Add warm glowing fire light for the campfire grill & soup pot (Cats&Soup style)
             Light grillLight = null;
-            if (facilityKey == "grill")
+            if (facilityKey == "grill" || facilityKey == "soup_pot")
             {
                 var fireLightGo = new GameObject("GrillFireLight");
                 fireLightGo.transform.SetParent(stationRoot.transform, false);
@@ -302,13 +687,16 @@ namespace Nyangsta.Arcade
             if (facilityBb != null)
                 facilityBb.gameObject.AddComponent<SpriteMotionAnimator>().ConfigureFacility(() => cook.IsCooking);
             // Dish icon bubble over the cook zone (replaces the graybox text label).
-            string dishKey = input == ArcadeItemType.Berry ? "item_juice" : "item_grilledfish";
+            string dishKey = "item_grilledfish";
+            if (input == ArcadeItemType.Berry) dishKey = "item_juice";
+            else if (input == ArcadeItemType.Mushroom) dishKey = "item_soup";
+
             var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
             bubble.SetIcon(ArcadeSprites.Get(dishKey), 0.4f, new Vector2(0f, 0.06f));
             facilitySprite = facilityBb;
 
             // Add interactive sparks/steam/flames VFX during cooking
-            AddStationVFX(cook, stationRoot, input == ArcadeItemType.Berry, flipbook, grillLight);
+            AddStationVFX(cook, stationRoot, input, flipbook, grillLight);
 
             return cook;
         }
@@ -435,8 +823,8 @@ namespace Nyangsta.Arcade
             Transform parent,
             double cost,
             Vector3 pos,
-            GatherZone gather,
-            CookStation cook,
+            Transform gather,
+            Transform cook,
             TableZone[] tables,
             ArcadeItemType raw,
             ArcadeItemType cooked,
@@ -464,7 +852,8 @@ namespace Nyangsta.Arcade
             ArcadeCustomer prefab,
             TableZone[] tables,
             CookStation fishStation,
-            CookStation berryStation)
+            CookStation berryStation,
+            CookStation mushroomStation)
         {
             var spawner = new GameObject("CustomerSpawner");
             spawner.transform.SetParent(parent);
@@ -478,10 +867,12 @@ namespace Nyangsta.Arcade
             exit.position = new Vector3(7f, 1f, 3.6f);
 
             // Juice only sells once the berry cook station is live (gate on the station).
+            // Mushroom soup sells once the mushroom cauldron is live.
             var menu = new List<ArcadeCustomerSpawner.MenuOption>
             {
                 new() { item = ArcadeItemType.GrilledFish, pay = 10, gate = fishStation },
                 new() { item = ArcadeItemType.BerryJuice, pay = 16, gate = berryStation },
+                new() { item = ArcadeItemType.MushroomSkewer, pay = 25, gate = mushroomStation },
             };
 
             spawner.AddComponent<ArcadeCustomerSpawner>().Configure(prefab, tables, spawn, exit, 4.5f, menu);
@@ -1017,8 +1408,11 @@ namespace Nyangsta.Arcade
             return ps;
         }
 
-        private void AddStationVFX(CookStation station, GameObject stationRoot, bool isJuicer, SpriteFlipbookPlayer flipbook = null, Light grillLight = null)
+        private void AddStationVFX(CookStation station, GameObject stationRoot, ArcadeItemType input, SpriteFlipbookPlayer flipbook = null, Light grillLight = null)
         {
+            bool isJuicer = input == ArcadeItemType.Berry;
+            bool isMushroom = input == ArcadeItemType.Mushroom;
+
             // Sparks / Splash droplets
             var sparksGo = new GameObject("VFX_Sparks");
             sparksGo.transform.SetParent(stationRoot.transform, false);
@@ -1033,7 +1427,7 @@ namespace Nyangsta.Arcade
             mainS.startLifetime = new ParticleSystem.MinMaxCurve(0.6f, 1.2f);
             mainS.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3.2f);
             mainS.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.12f);
-            mainS.gravityModifier = new ParticleSystem.MinMaxCurve(isJuicer ? 0.5f : -0.3f);
+            mainS.gravityModifier = new ParticleSystem.MinMaxCurve(isJuicer ? 0.5f : (isMushroom ? 0.1f : -0.3f));
             mainS.simulationSpace = ParticleSystemSimulationSpace.World;
             mainS.maxParticles = 40;
 
@@ -1047,7 +1441,7 @@ namespace Nyangsta.Arcade
             shapeS.angle = 25f;
             shapeS.radius = 0.18f;
 
-            if (!isJuicer)
+            if (input == ArcadeItemType.Fish)
             {
                 var noiseS = psSparks.noise;
                 noiseS.enabled = true;
@@ -1065,6 +1459,20 @@ namespace Nyangsta.Arcade
                     new GradientColorKey[] {
                         new GradientColorKey(new Color(0.92f, 0.32f, 0.6f), 0f),
                         new GradientColorKey(new Color(1f, 0.62f, 0.8f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(1.0f, 0f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+            }
+            else if (isMushroom)
+            {
+                // Mushroom soup bubbles (purple / magenta)
+                gradS.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(0.77f, 0.37f, 0.82f), 0f),
+                        new GradientColorKey(new Color(0.92f, 0.61f, 0.95f), 1f)
                     },
                     new GradientAlphaKey[] {
                         new GradientAlphaKey(1.0f, 0f),
@@ -1141,6 +1549,22 @@ namespace Nyangsta.Arcade
                     }
                 );
             }
+            else if (isMushroom)
+            {
+                // Savory soup steam (soft purple-ish grey)
+                gradM.SetKeys(
+                    new GradientColorKey[] {
+                        new GradientColorKey(new Color(0.88f, 0.82f, 0.92f), 0f),
+                        new GradientColorKey(new Color(0.82f, 0.76f, 0.86f), 1f)
+                    },
+                    new GradientAlphaKey[] {
+                        new GradientAlphaKey(0f, 0f),
+                        new GradientAlphaKey(0.3f, 0.2f),
+                        new GradientAlphaKey(0.3f, 0.8f),
+                        new GradientAlphaKey(0f, 1f)
+                    }
+                );
+            }
             else
             {
                 // Cozy grey cooking steam
@@ -1171,10 +1595,10 @@ namespace Nyangsta.Arcade
 
             psSteam.Play();
 
-            // Soft Volumetric Flame particles (For the campfire grill)
+            // Soft Volumetric Flame particles (For the campfire grill / soup pot)
             ParticleSystem psFlames = null;
             ParticleSystem psEmbers = null;
-            if (!isJuicer)
+            if (input == ArcadeItemType.Fish || input == ArcadeItemType.Mushroom)
             {
                 // 1. Embers (glowing coals at base)
                 var embersGo = new GameObject("VFX_Embers");

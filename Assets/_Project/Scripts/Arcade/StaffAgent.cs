@@ -8,6 +8,7 @@ namespace Nyangsta.Arcade
     /// table and serve. Reuses StackHolder and the existing InteractionZone triggers,
     /// so the staff member triggers GatherZone / CookStation / TableZone exactly like
     /// the player. The agent only decides WHERE to stand; the zones do the work.
+    /// Supports split scenes by targeting DropBox transforms.
     /// </summary>
     [RequireComponent(typeof(StackHolder))]
     public class StaffAgent : MonoBehaviour
@@ -20,8 +21,8 @@ namespace Nyangsta.Arcade
         [SerializeField] private float repathInterval = 0.5f;
 
         private StackHolder _stack;
-        private GatherZone _gatherZone;
-        private CookStation _cookStation;
+        private Transform _gatherTarget;
+        private Transform _cookTarget;
         private TableZone[] _tables;
         private ArcadeItemType _rawType;
         private ArcadeItemType _cookedType;
@@ -31,14 +32,14 @@ namespace Nyangsta.Arcade
         private float _repathTimer;
 
         public void Configure(
-            GatherZone gather,
-            CookStation cook,
+            Transform gatherTarget,
+            Transform cookTarget,
             TableZone[] tables,
             ArcadeItemType raw,
             ArcadeItemType cooked)
         {
-            _gatherZone = gather;
-            _cookStation = cook;
+            _gatherTarget = gatherTarget;
+            _cookTarget = cookTarget;
             _tables = tables;
             _rawType = raw;
             _cookedType = cooked;
@@ -62,7 +63,7 @@ namespace Nyangsta.Arcade
         // Stand on the gather node until the stack is full of raw, then go cook.
         private void TickGather()
         {
-            if (_gatherZone == null || (_stack.IsFull && _stack.CurrentType == _rawType))
+            if (_gatherTarget == null || (_stack.IsFull && _stack.CurrentType == _rawType))
             {
                 _job = Job.GoCook;
                 return;
@@ -75,15 +76,15 @@ namespace Nyangsta.Arcade
                 return;
             }
 
-            MoveTo(_gatherZone.transform.position);
-            // GatherZone fills the stack via its own OnTriggerStay once we're inside.
+            MoveTo(_gatherTarget.position);
+            // GatherZone or DropBox fills the stack via its own OnTriggerStay once we're inside.
         }
 
         // Carry raw to the grill. CookStation swaps raw for cooked on contact;
         // once we hold a cooked dish, move on to serving.
         private void TickCook()
         {
-            if (_cookStation == null)
+            if (_cookTarget == null)
             {
                 _job = Job.GoServe;
                 return;
@@ -102,7 +103,7 @@ namespace Nyangsta.Arcade
                 return;
             }
 
-            MoveTo(_cookStation.transform.position);
+            MoveTo(_cookTarget.position);
         }
 
         // Take cooked dishes to a waiting table; when empty, loop back to gather.
@@ -125,7 +126,7 @@ namespace Nyangsta.Arcade
             // No customer waiting yet — idle near the kitchen so we react fast.
             if (_targetTable == null)
             {
-                if (_cookStation != null) MoveTo(_cookStation.transform.position);
+                if (_cookTarget != null) MoveTo(_cookTarget.position);
                 return;
             }
 

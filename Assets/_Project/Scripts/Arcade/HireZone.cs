@@ -18,8 +18,8 @@ namespace Nyangsta.Arcade
         [SerializeField] private WorldBubble costBubble;
         [SerializeField] private string displayName = "직원 고용";
 
-        [SerializeField] private GatherZone gatherZone;
-        [SerializeField] private CookStation cookStation;
+        [SerializeField] private Transform gatherZone;
+        [SerializeField] private Transform cookStation;
         [SerializeField] private TableZone[] tables;
         [SerializeField] private ArcadeItemType rawType;
         [SerializeField] private ArcadeItemType cookedType;
@@ -41,8 +41,8 @@ namespace Nyangsta.Arcade
             double cost,
             double tick,
             WorldBubble bubble,
-            GatherZone gather,
-            CookStation cook,
+            Transform gather,
+            Transform cook,
             TableZone[] tableZones,
             ArcadeItemType raw,
             ArcadeItemType cooked,

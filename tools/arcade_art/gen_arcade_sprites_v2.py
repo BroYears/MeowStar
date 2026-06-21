@@ -559,6 +559,152 @@ def lantern():
     b = f'<circle cx="50" cy="80" r="48" fill="{P["lantern"]}" opacity="0.18"/>' + b
     return svg(W, H, b, d)
 
+def wall():
+    W, H = 180, 150
+    d = lin("woodTop", P["wood_l"], P["wood"]) + lin("woodSide", P["wood"], P["wood_dd"])
+    b = shadow(90, 140, 74, 8, 0.12)
+    # Stacked horizontal logs
+    for i in range(5):
+        y = i * 28 + 10
+        b += f'<rect x="10" y="{y}" width="160" height="30" rx="8" fill="url(#woodSide)" {OUTLINE}/>'
+        b += f'<rect x="15" y="{y+2}" width="150" height="8" rx="3" fill="url(#woodTop)" opacity="0.3"/>'
+    # Small window in the middle of the wall with warm glow
+    b += f'<rect x="65" y="32" width="50" height="42" rx="6" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    b += f'<rect x="70" y="37" width="40" height="32" rx="3" fill="{P["lantern_glow"]}"/>'
+    b += f'<line x1="90" y1="37" x2="90" y2="69" stroke="{P["wood_dd"]}" stroke-width="3"/>'
+    b += f'<line x1="70" y1="53" x2="110" y2="53" stroke="{P["wood_dd"]}" stroke-width="3"/>'
+    # Warm light beam emitting down from window
+    b = f'<polygon points="70,53 40,140 140,140 110,53" fill="{P["lantern"]}" opacity="0.1"/>' + b
+    return svg(W, H, b, d)
+
+def carpet():
+    W, H = 210, 140
+    d = lin("cp", P["red"], P["red_d"])
+    # Flat decorative rug (oval shape)
+    b = f'<ellipse cx="105" cy="70" rx="96" ry="52" fill="url(#cp)" {OUTLINE}/>'
+    b += f'<ellipse cx="105" cy="70" rx="82" ry="42" fill="none" stroke="{P["cream"]}" stroke-dasharray="8 6" stroke-width="3" opacity="0.8"/>'
+    b += f'<ellipse cx="105" cy="70" rx="42" ry="22" fill="none" stroke="{P["cream"]}" stroke-width="2.5" opacity="0.6"/>'
+    return svg(W, H, b, d)
+
+def fireplace():
+    W, H = 180, 200
+    d = lin("st", "#8a8075", "#5c544c") + rad("fire", P["ember_l"], P["ember"])
+    b = shadow(90, 190, 78, 10, 0.15)
+    # Chimney body (stone blocks)
+    b += f'<rect x="35" y="10" width="110" height="170" rx="12" fill="url(#st)" {OUTLINE}/>'
+    # Hearth mantel
+    b += f'<rect x="25" y="120" width="130" height="18" rx="5" fill="{P["wood_dd"]}" {OUTLINE}/>'
+    # Fireplace opening
+    b += f'<path d="M50 180 v-40 q0 -12 12 -12 h56 q12 0 12 12 v40 Z" fill="#2d2822" {OUTLINE}/>'
+    # Burning wood and embers inside
+    b += f'<rect x="68" y="166" width="44" height="10" rx="3" fill="{P["wood_dd"]}" transform="rotate(15 90 171)"/>'
+    b += f'<rect x="68" y="166" width="44" height="10" rx="3" fill="{P["wood_dd"]}" transform="rotate(-15 90 171)"/>'
+    for (x, y, r) in [(78, 164, 11), (90, 156, 14), (102, 164, 11), (90, 168, 8)]:
+        b += f'<circle cx="{x}" cy="{y}" r="{r}" fill="url(#fire)"/>'
+    # Sparks rising
+    b += f'<circle cx="82" cy="138" r="3" fill="{P["ember_l"]}"/><circle cx="100" cy="142" r="2.5" fill="{P["ember_l"]}"/><circle cx="92" cy="128" r="2" fill="{P["ember_l"]}"/>'
+    return svg(W, H, b, d)
+
+def counter():
+    W, H = 200, 160
+    d = lin("cTop", P["wood_l"], P["wood"]) + lin("cSide", P["wood"], P["wood_dd"])
+    b = shadow(100, 148, 84, 12, 0.15)
+    # Log counter body
+    b += f'<rect x="25" y="58" width="150" height="82" rx="16" fill="url(#cSide)" {OUTLINE}/>'
+    b += f'<ellipse cx="100" cy="58" rx="80" ry="20" fill="url(#cTop)" {OUTLINE}/>'
+    # Little service bell on top
+    b += f'<path d="M90 48 q10 -14 20 0 Z" fill="{P["buckle"]}" {OUTLINE}/>'
+    b += f'<circle cx="100" cy="38" r="3" fill="{P["buckle"]}"/>'
+    # Small notebook / register
+    b += f'<polygon points="46,54 74,48 84,60 56,66" fill="{P["cream"]}" {OUTLINE}/>'
+    b += f'<line x1="58" y1="53" x2="70" y2="50" stroke="{P["line"]}" stroke-width="2"/>'
+    return svg(W, H, b, d)
+
+def plant():
+    W, H = 120, 180
+    d = lin("pot", "#d9825b", "#9c5132") + lin("lf", "#7ebb55", "#4a8a2a")
+    b = shadow(60, 170, 36, 8, 0.15)
+    # Clay pot
+    b += f'<rect x="42" y="128" width="36" height="42" rx="4" fill="url(#pot)" {OUTLINE}/>'
+    b += f'<rect x="36" y="122" width="48" height="10" rx="3" fill="{P["wood"]}" {OUTLINE}/>'
+    # Lush tropical leaves
+    for (cx, cy, rx, ry, rot) in [(60, 96, 26, 44, 0), (46, 102, 22, 38, -32),
+                                  (74, 102, 22, 38, 32), (32, 114, 18, 34, -62),
+                                  (88, 114, 18, 34, 62)]:
+        b += f'<ellipse cx="{cx}" cy="{cy}" rx="{rx}" ry="{ry}" fill="url(#lf)" {OUTLINE} transform="rotate({rot} {cx} {cy})"/>'
+        # Leaf rib detail
+        b += f'<path d="M{cx} {cy+ry*0.7} Q{cx} {cy} {cx} {cy-ry*0.7}" stroke="{P["leaf_l"]}" stroke-width="2" fill="none" opacity="0.6" transform="rotate({rot} {cx} {cy})"/>'
+    return svg(W, H, b, d)
+
+def soup_pot():
+    W, H = 230, 220
+    d = lin("potSteel", P["grill_steel"], P["grill_d"]) + lin("soupFill", "#8f623e", "#5c3d25") + rad("fireGlow", P["ember_l"], P["ember"])
+    b = shadow(115, 204, 82, 14, 0.15)
+    # Stone campfire stand
+    b += f'<rect x="45" y="148" width="140" height="50" rx="14" fill="#6b6257" {OUTLINE}/>'
+    # Red embers underneath
+    for (x, y) in [(80, 168), (115, 172), (150, 168), (100, 180), (130, 180)]:
+        b += f'<circle cx="{x}" cy="{y}" r="8" fill="url(#fireGlow)"/>'
+    # Large black iron cauldron (pot)
+    b += f'<path d="M55 76 h120 c20 0 25 78 0 78 h-120 c-25 0 -20 -78 0 -78 Z" fill="url(#potSteel)" {OUTLINE}/>'
+    # Outer rim
+    b += f'<ellipse cx="115" cy="76" rx="60" ry="16" fill="url(#potSteel)" {OUTLINE}/>'
+    # Soup surface
+    b += f'<ellipse cx="115" cy="76" rx="52" ry="12" fill="url(#soupFill)"/>'
+    # Bubbles on soup
+    for (x, y, r) in [(84, 76, 5), (128, 73, 6), (144, 78, 4), (106, 79, 5)]:
+        b += f'<circle cx="{x}" cy="{y}" r="{r}" fill="#baa698" opacity="0.4" stroke="{P["line"]}" stroke-width="1"/>'
+    # Handles on the pot
+    b += f'<path d="M48 94 q-18 -10 -12 -28" fill="none" stroke="url(#potSteel)" stroke-width="5" stroke-linecap="round"/>'
+    b += f'<path d="M182 94 q18 -10 12 -28" fill="none" stroke="url(#potSteel)" stroke-width="5" stroke-linecap="round"/>'
+    return svg(W, H, b, d)
+
+def item_mushroom():
+    W, H = 100, 100
+    d = rad("mshCap", "#c55ecf", "#7c3585") + lin("mshStem", P["white"], P["white_sh"])
+    b = shadow(50, 88, 30, 6)
+    # First mushroom (smaller, rotated)
+    b += f'<path d="M32 78 q-10 -14 -12 -26 q24 -6 28 8 Z" fill="url(#mshStem)" {OUTLINE}/>'
+    b += f'<ellipse cx="22" cy="50" rx="18" ry="12" fill="url(#mshCap)" {OUTLINE} transform="rotate(-15 22 50)"/>'
+    # Second mushroom (larger, main)
+    b += f'<path d="M56 82 q0 -22 -14 -32 q28 -6 32 14 Z" fill="url(#mshStem)" {OUTLINE}/>'
+    b += f'<ellipse cx="64" cy="46" rx="24" ry="16" fill="url(#mshCap)" {OUTLINE} transform="rotate(10 64 46)"/>'
+    # Spots on cap
+    b += f'<circle cx="56" cy="40" r="3.5" fill="{P["white"]}" opacity="0.85"/>'
+    b += f'<circle cx="72" cy="48" r="4.5" fill="{P["white"]}" opacity="0.85"/>'
+    b += f'<circle cx="18" cy="48" r="3" fill="{P["white"]}" opacity="0.85"/>'
+    return svg(W, H, b, d)
+
+def item_soup():
+    W, H = 100, 100
+    d = lin("spBowl", P["wood_l"], P["wood_dd"]) + lin("spSurf", "#8f623e", "#5c3d25")
+    b = shadow(50, 88, 34, 7)
+    # Wooden bowl
+    b += f'<path d="M22 46 h56 q6 34 -28 34 q-34 0 -28 -34 Z" fill="url(#spBowl)" {OUTLINE}/>'
+    b += f'<ellipse cx="50" cy="46" rx="28" ry="8" fill="url(#spBowl)" {OUTLINE}/>'
+    # Soup inside
+    b += f'<ellipse cx="50" cy="46" rx="24" ry="6" fill="url(#spSurf)"/>'
+    # Spoon in bowl
+    b += f'<line x1="68" y1="22" x2="52" y2="48" stroke="{P["white"]}" stroke-width="4" stroke-linecap="round"/>'
+    b += f'<ellipse cx="52" cy="48" rx="6" ry="4" fill="{P["white"]}" transform="rotate(30 52 48)"/>'
+    # Garnish green leaf float
+    b += f'<ellipse cx="42" cy="46" rx="3" ry="5" fill="{P["leaf"]}" transform="rotate(-30 42 46)"/>'
+    return svg(W, H, b, d)
+
+def tile_cave():
+    d = lin("cv", "#3f3047", "#271c2c") + rad("glow", "#674873", "#271c2c", 0.4, 0.4, 0.95)
+    b = f'<rect width="128" height="128" fill="url(#cv)"/>'
+    b += f'<circle cx="50" cy="50" r="76" fill="url(#glow)" opacity="0.45"/>'
+    # Small cave stones and sparkling crystal details
+    for (x, y, r, c) in [(18, 32, 4, "#503e59"), (92, 24, 6, "#1f1424"),
+                         (38, 98, 5, "#1f1424"), (112, 104, 4, "#503e59")]:
+        b += f'<ellipse cx="{x}" cy="{y}" rx="{r+1}" ry="{r}" fill="{c}" opacity="0.6"/>'
+    # Sparkling crystal shards (glistening yellow-purple)
+    for (x, y) in [(56, 42), (78, 86), (28, 70), (102, 60)]:
+        b += f'<polygon points="{x},{y-6} {x+3},{y} {x},{y+6} {x-3},{y}" fill="#d59bf2" opacity="0.8"/>'
+        b += f'<polygon points="{x},{y-3} {x+1.5},{y} {x},{y+3} {x-1.5},{y}" fill="#fff"/>'
+    return svg(128, 128, b, d)
+
 # Player and staff now use PDF-concept cutouts directly in Resources/Arcade.
 # Keep this generator focused on the remaining SVG-native arcade sprites so a
 # refresh does not overwrite the higher-fidelity character art.
@@ -573,6 +719,10 @@ SPRITES = {
     "tile_water": tile_water, "tile_berryfield": tile_berryfield,
     "pad_build": lambda: pad("build"), "pad_hire": lambda: pad("hire"),
     "tree": tree, "bush": bush, "fence": fence, "lantern": lantern,
+    "wall": wall, "carpet": carpet, "fireplace": fireplace,
+    "counter": counter, "plant": plant, "soup_pot": soup_pot,
+    "item_mushroom": item_mushroom, "item_soup": item_soup,
+    "tile_cave": tile_cave,
 }
 
 def main():

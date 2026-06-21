@@ -61,6 +61,29 @@ namespace Nyangsta.Arcade
             return item;
         }
 
+        public ArcadeStackItem Peek()
+        {
+            if (IsEmpty) return null;
+            return _items[_items.Count - 1];
+        }
+
+        public void ClearStack()
+        {
+            foreach (var item in _items)
+            {
+                if (item != null)
+                {
+                    Destroy(item.gameObject);
+                }
+            }
+            _items.Clear();
+        }
+
+        public IReadOnlyList<ArcadeStackItem> GetItems()
+        {
+            return _items;
+        }
+
         private void LateUpdate()
         {
             if (stackAnchor == null) return;
