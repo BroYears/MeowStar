@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &585844092
+--- !u!1 &343108486
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,8 +127,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 585844094}
-  - component: {fileID: 585844093}
+  - component: {fileID: 343108488}
+  - component: {fileID: 343108487}
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -136,13 +136,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!108 &585844093
+--- !u!108 &343108487
 Light:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 585844092}
+  m_GameObject: {fileID: 343108486}
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
@@ -201,13 +201,13 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
---- !u!4 &585844094
+--- !u!4 &343108488
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 585844092}
+  m_GameObject: {fileID: 343108486}
   serializedVersion: 2
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
   m_LocalPosition: {x: 0, y: 3, z: 0}
@@ -216,7 +216,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
---- !u!1 &1012364326
+--- !u!1 &472551925
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -224,54 +224,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1012364328}
-  - component: {fileID: 1012364327}
-  m_Layer: 0
-  m_Name: _ArcadeM1Bootstrap
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1012364327
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1012364326}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d54783ded014cb9a049e5a95a97fd74, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Arcade.ArcadePrototypeBootstrap
-  buildOnStart: 1
---- !u!4 &1012364328
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1012364326}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1370646420
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1370646423}
-  - component: {fileID: 1370646422}
-  - component: {fileID: 1370646421}
+  - component: {fileID: 472551928}
+  - component: {fileID: 472551927}
+  - component: {fileID: 472551926}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -279,21 +234,21 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!81 &1370646421
+--- !u!81 &472551926
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1370646420}
+  m_GameObject: {fileID: 472551925}
   m_Enabled: 1
---- !u!20 &1370646422
+--- !u!20 &472551927
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1370646420}
+  m_GameObject: {fileID: 472551925}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
@@ -338,13 +293,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &1370646423
+--- !u!4 &472551928
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1370646420}
+  m_GameObject: {fileID: 472551925}
   serializedVersion: 2
   m_LocalRotation: {x: 0.43837115, y: 0, z: 0, w: 0.89879405}
   m_LocalPosition: {x: -2.8, y: 8.5, z: -8.5}
@@ -353,7 +308,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1825793525
+--- !u!1 &1101205452
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -361,14 +316,14 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1825793533}
-  - component: {fileID: 1825793532}
-  - component: {fileID: 1825793531}
-  - component: {fileID: 1825793530}
-  - component: {fileID: 1825793529}
-  - component: {fileID: 1825793528}
-  - component: {fileID: 1825793527}
-  - component: {fileID: 1825793526}
+  - component: {fileID: 1101205460}
+  - component: {fileID: 1101205459}
+  - component: {fileID: 1101205458}
+  - component: {fileID: 1101205457}
+  - component: {fileID: 1101205456}
+  - component: {fileID: 1101205455}
+  - component: {fileID: 1101205454}
+  - component: {fileID: 1101205453}
   m_Layer: 0
   m_Name: _Managers
   m_TagString: Untagged
@@ -376,51 +331,51 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1825793526
+--- !u!114 &1101205453
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f9a363057dc4340d3b0c61fa28703918, type: 3}
   m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Audio.SfxManager
---- !u!114 &1825793527
+--- !u!114 &1101205454
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ff67ef5db22794c66b57b9857355afb7, type: 3}
   m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.UI.UIManager
   panelRoot: {fileID: 0}
---- !u!114 &1825793528
+--- !u!114 &1101205455
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d1eb444994a24ee58fcc5dd540c0de4, type: 3}
   m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Ads.AdManager
   simulateInEditor: 1
---- !u!114 &1825793529
+--- !u!114 &1101205456
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55b5d8eddd05d45bfb640eab6b6f0241, type: 3}
@@ -428,50 +383,95 @@ MonoBehaviour:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Economy.EconomyManager
   database: {fileID: 0}
   starterIngredientEach: 10
---- !u!114 &1825793530
+--- !u!114 &1101205457
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cfdca8a6a2d04ff49dc9e1250324a892, type: 3}
   m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Progression.ProgressionManager
---- !u!114 &1825793531
+--- !u!114 &1101205458
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a375273b3921408681e0bce07d4adc1, type: 3}
   m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Core.GameManager
   database: {fileID: 0}
---- !u!114 &1825793532
+--- !u!114 &1101205459
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 40386bd02040a4f1da79f7a525a9b1ba, type: 3}
   m_Name:
   m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Save.SaveManager
---- !u!4 &1825793533
+--- !u!4 &1101205460
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1825793525}
+  m_GameObject: {fileID: 1101205452}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1636409317
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1636409319}
+  - component: {fileID: 1636409318}
+  m_Layer: 0
+  m_Name: _ArcadeM1Bootstrap
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1636409318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636409317}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d54783ded014cb9a049e5a95a97fd74, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Nyangsta.Runtime::Nyangsta.Arcade.ArcadePrototypeBootstrap
+  buildOnStart: 1
+--- !u!4 &1636409319
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1636409317}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -484,7 +484,7 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1370646423}
-  - {fileID: 585844094}
-  - {fileID: 1825793533}
-  - {fileID: 1012364328}
+  - {fileID: 472551928}
+  - {fileID: 343108488}
+  - {fileID: 1101205460}
+  - {fileID: 1636409319}

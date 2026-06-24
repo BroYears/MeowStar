@@ -11,11 +11,15 @@ namespace Nyangsta.Arcade
         Berry = 2,
         Wood = 3,
         Mushroom = 4,
+        Salmon = 5,
+        Honey = 6,
 
         // Cooked / processed goods sold to customers.
         GrilledFish = 10,
         BerryJuice = 11,
         MushroomSkewer = 12,
+        SalmonSteak = 13,
+        HoneyDessert = 14,
     }
 
     /// <summary>One physical item carried in a stack above the actor.</summary>

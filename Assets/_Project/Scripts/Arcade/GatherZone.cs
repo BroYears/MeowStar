@@ -10,6 +10,8 @@ namespace Nyangsta.Arcade
 
         private float _timer;
 
+        public ArcadeItemType ProducedType => itemPrefab != null ? itemPrefab.type : ArcadeItemType.None;
+
         public void Configure(ArcadeStackItem prefab, float interval, Transform spawn)
         {
             itemPrefab = prefab;
@@ -23,6 +25,11 @@ namespace Nyangsta.Arcade
         }
 
         protected override void OnAgentStay(StackHolder agent, float dt)
+        {
+            TickGather(agent, dt);
+        }
+
+        public void TickGather(StackHolder agent, float dt)
         {
             if (itemPrefab == null || !agent.CanAccept(itemPrefab.type)) return;
 

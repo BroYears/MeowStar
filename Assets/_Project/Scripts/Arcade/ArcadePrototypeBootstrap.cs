@@ -87,6 +87,14 @@ namespace Nyangsta.Arcade
             var dishPrefab = MakeStackPrefab("GrilledFishPrefab", ArcadeItemType.GrilledFish, "item_grilledfish", new Vector3(0.52f, 0.18f, 0.72f), prefabs.transform);
             var berryPrefab = MakeStackPrefab("BerryPrefab", ArcadeItemType.Berry, "item_berry", new Vector3(0.4f, 0.4f, 0.4f), prefabs.transform);
             var juicePrefab = MakeStackPrefab("BerryJuicePrefab", ArcadeItemType.BerryJuice, "item_juice", new Vector3(0.38f, 0.5f, 0.38f), prefabs.transform);
+            var woodPrefab = MakeStackPrefab("WoodPrefab", ArcadeItemType.Wood, "item_wood", new Vector3(0.54f, 0.24f, 0.38f), prefabs.transform);
+            var mushroomPrefab = MakeStackPrefab("MushroomPrefab", ArcadeItemType.Mushroom, "item_mushroom", new Vector3(0.42f, 0.32f, 0.42f), prefabs.transform);
+            var skewerPrefab = MakeStackPrefab("MushroomSkewerPrefab", ArcadeItemType.MushroomSkewer, "item_mushroomskewer", new Vector3(0.34f, 0.52f, 0.34f), prefabs.transform);
+            // Late-game resources/dishes reuse existing graybox art (no dedicated sprites yet).
+            var salmonPrefab = MakeStackPrefab("SalmonPrefab", ArcadeItemType.Salmon, "item_fish", new Vector3(0.52f, 0.26f, 0.82f), prefabs.transform);
+            var salmonSteakPrefab = MakeStackPrefab("SalmonSteakPrefab", ArcadeItemType.SalmonSteak, "item_grilledfish", new Vector3(0.56f, 0.2f, 0.78f), prefabs.transform);
+            var honeyPrefab = MakeStackPrefab("HoneyPrefab", ArcadeItemType.Honey, "item_berry", new Vector3(0.4f, 0.42f, 0.4f), prefabs.transform);
+            var honeyDessertPrefab = MakeStackPrefab("HoneyDessertPrefab", ArcadeItemType.HoneyDessert, "item_juice", new Vector3(0.4f, 0.52f, 0.4f), prefabs.transform);
             var moneyPrefab = MakeMoneyPrefab(prefabs.transform);
             var customerPrefab = MakeCustomerPrefab(prefabs.transform);
 
@@ -95,20 +103,30 @@ namespace Nyangsta.Arcade
             MakeFloor("Ground", root.transform, Vector3.zero, new Vector3(17f, 0.4f, 10f), "tile_grass", 17f, 10f, bias: -200, keepCollider: true);
             MakeFloor("River", root.transform, new Vector3(-6.6f, 0.03f, -1.2f), new Vector3(2.4f, 0.08f, 6.4f), "tile_water", 2.4f, 6.4f, bias: -150, keepCollider: false);
             MakeFloor("BerryField", root.transform, new Vector3(-6.6f, 0.04f, 3.6f), new Vector3(2.6f, 0.06f, 2.6f), "tile_berryfield", 2.6f, 2.6f, bias: -150, keepCollider: false);
-            MakeFloor("KitchenFloor", root.transform, new Vector3(-0.4f, 0.05f, 0f), new Vector3(5.2f, 0.08f, 6.4f), "tile_path", 5.2f, 6.4f, bias: -120, keepCollider: false);
+            MakeFloor("WoodGrove", root.transform, new Vector3(-4.6f, 0.045f, -4.1f), new Vector3(2.4f, 0.06f, 1.45f), "tile_grass", 2.4f, 1.45f, bias: -149, keepCollider: false);
+            MakeFloor("MushroomGrove", root.transform, new Vector3(-1.2f, 0.045f, 4.15f), new Vector3(2.7f, 0.06f, 1.55f), "tile_berryfield", 2.7f, 1.55f, bias: -148, keepCollider: false);
+            MakeFloor("KitchenFloor", root.transform, new Vector3(0.2f, 0.05f, 0.2f), new Vector3(7.4f, 0.08f, 7.6f), "tile_path", 7.4f, 7.6f, bias: -120, keepCollider: false);
 
             var player = MakePlayer(root.transform);
             var stack = player.GetComponent<StackHolder>();
 
             // ---- Fish line (active from the start) ----
             var fishGather = MakeGatherZone(root.transform, "GatherZone_Fish", "item_fish", fishPrefab, new Vector3(-6.6f, 0.08f, -1.6f));
-            var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.2f, 0f, -1.6f), out var grillFacility);
-            MakeUpgradeZone(root.transform, "UpgradeZone_Grill", "그릴 강화", new Vector3(0.4f, 0.08f, -1.6f), grill, grillFacility, upgrades);
+            var grill = MakeGrill(root.transform, "Grill", dishPrefab, ArcadeItemType.Fish, new Vector3(-1.8f, 0f, -1.5f), out var grillFacility);
+            MakeUpgradeZone(root.transform, "UpgradeZone_Grill", "그릴 강화", new Vector3(-1.8f, 0.08f, -0.3f), grill, grillFacility, upgrades);
+
+            // ---- Wood helper resource (Loop3): spend logs on build pads as construction value. ----
+            MakeGatherZone(root.transform, "GatherZone_Wood", "item_wood", woodPrefab, new Vector3(-4.6f, 0.08f, -4.1f));
 
             // ---- Berry line (built later via a build zone) ----
             var berryGather = MakeGatherZone(root.transform, "GatherZone_Berry", "item_berry", berryPrefab, new Vector3(-6.6f, 0.08f, 3.6f));
-            var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(-1.2f, 0f, 1.8f), out var juicerFacility);
+            var juicer = MakeGrill(root.transform, "Juicer", juicePrefab, ArcadeItemType.Berry, new Vector3(0.5f, 0f, -1.5f), out var juicerFacility);
             // The berry line is locked behind a build zone below (grouped + deactivated there).
+
+            // ---- Mushroom line (Loop2 content expansion) ----
+            var mushroomGather = MakeGatherZone(root.transform, "GatherZone_Mushroom", "item_mushroom", mushroomPrefab, new Vector3(-1.2f, 0.08f, 4.15f));
+            var mushroomPot = MakeGrill(root.transform, "MushroomPot", skewerPrefab, ArcadeItemType.Mushroom, new Vector3(2.8f, 0f, -1.5f),
+                out var mushroomFacility, "mushroom_pot", "item_mushroomskewer");
 
             // ---- Tables: table 1 open, tables 2 & 3 behind build zones ----
             var tables = new List<TableZone>();
@@ -132,13 +150,63 @@ namespace Nyangsta.Arcade
             berryLine.SetActive(false);
             MakeBuildZone(root.transform, "BuildZone_BerryLine", 80, berryLine, new Vector3(-3.6f, 0.08f, 3.2f), "베리 라인", progress);
 
-            MakeCustomerSpawner(root.transform, customerPrefab, tableArray, grill, juicer);
+            var mushroomLine = new GameObject("MushroomLineGroup");
+            mushroomLine.transform.SetParent(root.transform);
+            mushroomGather.transform.SetParent(mushroomLine.transform, true);
+            mushroomPot.transform.parent.SetParent(mushroomLine.transform, true);
+            MakeUpgradeZone(mushroomLine.transform, "UpgradeZone_MushroomPot", "버섯 솥 강화", new Vector3(2.8f, 0.08f, -0.3f), mushroomPot, mushroomFacility, upgrades);
+            mushroomLine.SetActive(false);
+            MakeBuildZone(root.transform, "BuildZone_MushroomLine", 180, mushroomLine, new Vector3(1.9f, 0.08f, 4.35f), "버섯 라인", progress);
+
+            // ---- Salmon line (late-game): far-river salmon → oven → salmon steak.
+            // Locked behind a gold build zone; reuses the grill facility/VFX as graybox.
+            var salmonGather = MakeGatherZone(root.transform, "GatherZone_Salmon", "item_fish", salmonPrefab, new Vector3(-6.6f, 0.08f, -4.4f));
+            var oven = MakeGrill(root.transform, "Oven", salmonSteakPrefab, ArcadeItemType.Salmon, new Vector3(-1.8f, 0f, 1.8f), out var ovenFacility, "grill", "item_grilledfish");
+            var salmonLine = new GameObject("SalmonLineGroup");
+            salmonLine.transform.SetParent(root.transform);
+            salmonGather.transform.SetParent(salmonLine.transform, true);
+            oven.transform.parent.SetParent(salmonLine.transform, true);
+            MakeUpgradeZone(salmonLine.transform, "UpgradeZone_Oven", "화덕 강화", new Vector3(-1.8f, 0.08f, 3.0f), oven, ovenFacility, upgrades);
+            salmonLine.SetActive(false);
+            MakeBuildZone(root.transform, "BuildZone_SalmonLine", 240, salmonLine, new Vector3(-5.2f, 0.08f, -2.8f), "화덕 라인", progress);
+
+            // ---- Honey line (late-game): deep-forest honey → dessert bar → honey dessert. ----
+            // This line lives behind the world-tree gate so the arcade map now has a
+            // visible reason to earn and spend essence instead of ending at gold pads.
+            var worldTreeAnnex = new GameObject("WorldTreeAnnex");
+            worldTreeAnnex.transform.SetParent(root.transform);
+            var honeyGather = MakeGatherZone(root.transform, "GatherZone_Honey", "item_berry", honeyPrefab, new Vector3(4.8f, 0.08f, 4.6f));
+            var dessertBar = MakeGrill(root.transform, "DessertBar", honeyDessertPrefab, ArcadeItemType.Honey, new Vector3(0.5f, 0f, 1.8f), out var dessertFacility, "juicer", "item_juice");
+            var honeyLine = new GameObject("HoneyLineGroup");
+            honeyLine.transform.SetParent(worldTreeAnnex.transform);
+            honeyGather.transform.SetParent(honeyLine.transform, true);
+            dessertBar.transform.parent.SetParent(honeyLine.transform, true);
+            MakeUpgradeZone(honeyLine.transform, "UpgradeZone_DessertBar", "디저트바 강화", new Vector3(0.5f, 0.08f, 3.0f), dessertBar, dessertFacility, upgrades);
+            honeyLine.SetActive(false);
+            MakeBuildZone(worldTreeAnnex.transform, "BuildZone_HoneyLine", 420, honeyLine, new Vector3(5.6f, 0.08f, 4.4f), "디저트바 라인", progress);
+            worldTreeAnnex.SetActive(false);
+            MakeArcadeHuntZone(root.transform, new Vector3(-7.5f, 0.08f, 4.2f), "숲 탐험");
+            MakeWorldTreeGate(root.transform, 2, worldTreeAnnex, new Vector3(6.95f, 0.08f, 3.15f), "세계수 숲길");
+
+            MakeCustomerSpawner(root.transform, customerPrefab, tableArray, grill, juicer, mushroomPot, oven, dessertBar);
 
             // ---- Hire zones: automate each production line ----
             MakeHireZone(root.transform, 150, new Vector3(-3.6f, 0.08f, -3.6f),
                 fishGather, grill, tableArray, ArcadeItemType.Fish, ArcadeItemType.GrilledFish, player.transform.position, "생선 직원", progress);
             MakeHireZone(root.transform, 220, new Vector3(-3.6f, 0.08f, 4.4f),
                 berryGather, juicer, tableArray, ArcadeItemType.Berry, ArcadeItemType.BerryJuice, player.transform.position, "베리 직원", progress);
+            MakeHireZone(root.transform, 340, new Vector3(3.25f, 0.08f, 4.35f),
+                mushroomGather, mushroomPot, tableArray, ArcadeItemType.Mushroom, ArcadeItemType.MushroomSkewer, player.transform.position, "버섯 직원", progress);
+            MakeMoneyCollectorHireZone(root.transform, 260, new Vector3(2.7f, 0.08f, -3.6f), player.transform.position, "홀 직원", progress);
+            MakeHireZone(root.transform, 480, new Vector3(-5.6f, 0.08f, -0.2f),
+                salmonGather, oven, tableArray, ArcadeItemType.Salmon, ArcadeItemType.SalmonSteak, player.transform.position, "연어 직원", progress);
+            MakeHireZone(root.transform, 650, new Vector3(7.6f, 0.08f, 4.0f),
+                honeyGather, dessertBar, tableArray, ArcadeItemType.Honey, ArcadeItemType.HoneyDessert, player.transform.position, "꿀 직원", progress);
+
+            // ---- Riverside seating expansion: fund a gold build zone to open an extra
+            // seating wing. Tables register themselves, so the spawner serves them
+            // automatically once revealed; this extends the run past the hire wall.
+            BuildRiversideExpansion(root.transform, moneyPrefab, progress);
 
             // ---- Decorative props around the edges (storybook framing) ----
             var deco = new GameObject("Decor");
@@ -172,6 +240,13 @@ namespace Nyangsta.Arcade
 
             // Create leaf drift particles for a dynamic forest feel (Cats&Soup style)
             CreateLeafDrift(root.transform);
+
+            // Persistent contextual destination marker. It stays hidden while the
+            // first-session tutorial is active, then keeps pointing at the next useful
+            // loop object so players are not left guessing after FTUE.
+            var objectiveGuide = new GameObject("ArcadeObjectiveMarker");
+            objectiveGuide.transform.SetParent(root.transform);
+            objectiveGuide.AddComponent<ArcadeObjectiveMarker>().Configure(stack);
 
             var cam = Camera.main;
             if (cam != null)
@@ -233,7 +308,15 @@ namespace Nyangsta.Arcade
             return gather;
         }
 
-        private CookStation MakeGrill(Transform parent, string label, ArcadeStackItem dishPrefab, ArcadeItemType input, Vector3 pos, out SpriteBillboard facilitySprite)
+        private CookStation MakeGrill(
+            Transform parent,
+            string label,
+            ArcadeStackItem dishPrefab,
+            ArcadeItemType input,
+            Vector3 pos,
+            out SpriteBillboard facilitySprite,
+            string facilityKeyOverride = null,
+            string dishKeyOverride = null)
         {
             // Body and zone share a root so the whole station can be hidden/moved
             // as one unit (e.g. while locked behind a build zone).
@@ -242,7 +325,7 @@ namespace Nyangsta.Arcade
             stationRoot.transform.position = pos;
 
             // Facility sprite (grill or juicer) stands on the ground at the station root.
-            string facilityKey = input == ArcadeItemType.Berry ? "juicer" : "grill";
+            string facilityKey = facilityKeyOverride ?? (input == ArcadeItemType.Berry ? "juicer" : "grill");
             var facility = new GameObject("FacilitySprite");
             facility.transform.SetParent(stationRoot.transform, false);
             var facilityBb = AttachStandingSprite(facility, facilityKey, 1.7f, footOffsetY: 0f, bias: 0);
@@ -284,7 +367,7 @@ namespace Nyangsta.Arcade
             if (facilityBb != null)
                 facilityBb.gameObject.AddComponent<SpriteMotionAnimator>().ConfigureFacility(() => cook.IsCooking);
             // Dish icon bubble over the cook zone (replaces the graybox text label).
-            string dishKey = input == ArcadeItemType.Berry ? "item_juice" : "item_grilledfish";
+            string dishKey = dishKeyOverride ?? (input == ArcadeItemType.Berry ? "item_juice" : "item_grilledfish");
             var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.25f, -0.35f), 0.8f, 0.7f);
             bubble.SetIcon(ArcadeSprites.Get(dishKey), 0.4f, new Vector2(0f, 0.06f));
             facilitySprite = facilityBb;
@@ -374,6 +457,58 @@ namespace Nyangsta.Arcade
             if (progress.IsComplete(name)) build.RestoreCompleted();
         }
 
+        private void MakeArcadeHuntZone(Transform parent, Vector3 pos, string displayName)
+        {
+            var zone = MakeZone("ArcadeHuntZone", parent, pos, new Vector3(1.2f, 0.05f, 1.2f), new Color(0.35f, 0.75f, 0.55f, 0.62f));
+            AttachPad(zone, "pad_build", 1.8f, new Color(0.45f, 0.95f, 0.62f, 1f));
+            var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.3f, -0.1f), 1.55f, 0.95f);
+            bubble.SetIcon(ArcadeSprites.Get("item_wood"), 0.28f, new Vector2(-0.42f, -0.10f));
+
+            var hunt = zone.AddComponent<ArcadeHuntZone>();
+            hunt.Configure(3, 2.2f, 6f, bubble, displayName);
+        }
+
+        private void MakeWorldTreeGate(Transform parent, int requiredLevel, GameObject target, Vector3 pos, string displayName)
+        {
+            var zone = MakeZone($"WorldTreeGate_Lv{requiredLevel}", parent, pos, new Vector3(1.25f, 0.05f, 1.25f), new Color(0.45f, 1f, 0.45f, 0.62f));
+            AttachPad(zone, "pad_build", 1.9f, new Color(0.45f, 1f, 0.55f, 1f));
+            var bubble = WorldBubble.Create(zone.transform, new Vector3(0f, 1.3f, -0.1f), 1.65f, 0.95f);
+            bubble.SetTitle(displayName, 30, new Vector2(0f, 0.24f));
+            bubble.SetIcon(ArcadeSprites.Get("item_wood"), 0.28f, new Vector2(-0.42f, -0.10f));
+            bubble.SetValue("정수", 28, new Vector2(0.08f, -0.10f));
+
+            var gate = zone.AddComponent<WorldTreeGateZone>();
+            gate.Configure(requiredLevel, target, bubble, displayName);
+
+            if (target == null) return;
+
+            var reveal = target.GetComponent<MapReveal>();
+            if (reveal == null) reveal = target.AddComponent<MapReveal>();
+            reveal.Init(target.transform.localScale);
+            gate.SetReveal(reveal);
+        }
+
+        /// <summary>
+        /// Riverside seating wing, unlocked by funding a gold build zone. Two extra tables
+        /// in a group that the build zone reveals; they self-register so the customer
+        /// spawner serves them with no extra wiring. Keeps the prototype a pure restaurant
+        /// tycoon — no hunt-essence dependency.
+        /// </summary>
+        private void BuildRiversideExpansion(Transform root, MoneyPile moneyPrefab, ArcadeProgressService progress)
+        {
+            var wing = new GameObject("RiversideWing");
+            wing.transform.SetParent(root);
+
+            // Push the seating further out (+x) so it reads as the map expanding.
+            MakeTable(wing.transform, moneyPrefab, new Vector3(6.6f, 0f, -1.2f), true);
+            MakeTable(wing.transform, moneyPrefab, new Vector3(6.6f, 0f, 1.2f), true);
+            wing.SetActive(false);
+
+            // Pricier than the early build pads so the riverside wing reads as a late-game
+            // goal earned through a full run, not a quick unlock.
+            MakeBuildZone(root, "BuildZone_Riverside", 300, wing, new Vector3(5.4f, 0.08f, 0f), "강가 좌석", progress);
+        }
+
         /// <summary>
         /// Bubble for build/hire pads: facility name on top, coin icon + remaining cost
         /// below. The zone scripts refresh the value text while gold drains.
@@ -441,12 +576,38 @@ namespace Nyangsta.Arcade
             if (progress.IsComplete(zoneId)) hire.RestoreCompleted();
         }
 
+        private void MakeMoneyCollectorHireZone(
+            Transform parent,
+            double cost,
+            Vector3 pos,
+            Vector3 staffSpawn,
+            string displayName,
+            ArcadeProgressService progress)
+        {
+            const string zoneId = "HireZone_MoneyCollector";
+            var zone = MakeZone(zoneId, parent, pos, new Vector3(1.15f, 0.05f, 1.15f), new Color(0.4f, 0.7f, 1f, 0.62f));
+            AttachPad(zone, "pad_hire", 1.7f);
+            var bubble = MakeCostBubble(zone.transform, displayName, cost);
+
+            var spawn = new GameObject("StaffSpawn").transform;
+            spawn.SetParent(zone.transform);
+            spawn.position = staffSpawn;
+
+            var hire = zone.AddComponent<HireZone>();
+            hire.ConfigureMoneyCollector(cost, 8, bubble, spawn, displayName);
+            hire.BindProgress(progress, zoneId);
+            if (progress.IsComplete(zoneId)) hire.RestoreCompleted();
+        }
+
         private void MakeCustomerSpawner(
             Transform parent,
             ArcadeCustomer prefab,
             TableZone[] tables,
             CookStation fishStation,
-            CookStation berryStation)
+            CookStation berryStation,
+            CookStation mushroomStation,
+            CookStation ovenStation,
+            CookStation dessertStation)
         {
             var spawner = new GameObject("CustomerSpawner");
             spawner.transform.SetParent(parent);
@@ -459,11 +620,14 @@ namespace Nyangsta.Arcade
             exit.SetParent(spawner.transform);
             exit.position = new Vector3(7f, 1f, 3.6f);
 
-            // Juice only sells once the berry cook station is live (gate on the station).
+            // Expansion foods only sell once their cook station is live.
             var menu = new List<ArcadeCustomerSpawner.MenuOption>
             {
                 new() { item = ArcadeItemType.GrilledFish, pay = 10, gate = fishStation },
                 new() { item = ArcadeItemType.BerryJuice, pay = 16, gate = berryStation },
+                new() { item = ArcadeItemType.MushroomSkewer, pay = 24, gate = mushroomStation },
+                new() { item = ArcadeItemType.SalmonSteak, pay = 40, gate = ovenStation },
+                new() { item = ArcadeItemType.HoneyDessert, pay = 55, gate = dessertStation },
             };
 
             spawner.AddComponent<ArcadeCustomerSpawner>().Configure(prefab, tables, spawn, exit, 4.5f, menu);

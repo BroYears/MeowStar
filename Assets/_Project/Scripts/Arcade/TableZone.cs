@@ -1,9 +1,16 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Nyangsta.Arcade
 {
     public class TableZone : InteractionZone
     {
+        // Active tables register themselves so the customer spawner can discover
+        // expansion tables that come online later (e.g. via a world-tree gate)
+        // without being re-wired with a fresh array.
+        private static readonly List<TableZone> RegisteredZones = new();
+        public static IReadOnlyList<TableZone> ActiveZones => RegisteredZones;
+
         [SerializeField] private Transform seatPoint;
         [SerializeField] private Transform moneySpawnPoint;
         [SerializeField] private MoneyPile moneyPilePrefab;
@@ -13,7 +20,21 @@ namespace Nyangsta.Arcade
         private float _serveTimer;
 
         public Vector3 SeatPosition => seatPoint != null ? seatPoint.position : transform.position;
+        public Vector3 ServePosition => transform.position;
         public bool IsOccupied => _customer != null;
+        public bool HasWaitingOrder => _customer != null && _customer.Current == ArcadeCustomer.State.Waiting;
+        public ArcadeItemType WaitingOrderItem => HasWaitingOrder ? _customer.WantedItem : ArcadeItemType.None;
+
+        private void OnEnable()
+        {
+            if (!RegisteredZones.Contains(this)) RegisteredZones.Add(this);
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            RegisteredZones.Remove(this);
+        }
 
         public void Configure(Transform seat, Transform moneyPoint, MoneyPile pilePrefab)
         {
@@ -50,6 +71,11 @@ namespace Nyangsta.Arcade
         }
 
         protected override void OnAgentStay(StackHolder agent, float dt)
+        {
+            TickServe(agent, dt);
+        }
+
+        public void TickServe(StackHolder agent, float dt)
         {
             if (_customer == null || _customer.Current != ArcadeCustomer.State.Waiting) return;
             if (agent.IsEmpty || agent.CurrentType != _customer.WantedItem) return;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Nyangsta.Economy;
 
@@ -6,6 +7,8 @@ namespace Nyangsta.Arcade
     [RequireComponent(typeof(Collider))]
     public class MoneyPile : MonoBehaviour
     {
+        private static readonly List<MoneyPile> RegisteredPiles = new();
+
         private const int BILL_COUNT = 4;
         private const float BILL_DELAY_STEP = 0.06f;
         private const float BILL_BASE_DURATION = 0.26f;
@@ -30,6 +33,9 @@ namespace Nyangsta.Arcade
         private Transform _pop;
         private SpriteRenderer _popRenderer;
         private float _popT = -1f;
+
+        public static IReadOnlyList<MoneyPile> ActivePiles => RegisteredPiles;
+        public bool IsCollecting => _target != null;
 
         public double Amount
         {
@@ -56,6 +62,16 @@ namespace Nyangsta.Arcade
         {
             UpdateLabel();
             BuildBills();
+        }
+
+        private void OnEnable()
+        {
+            if (!RegisteredPiles.Contains(this)) RegisteredPiles.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            RegisteredPiles.Remove(this);
         }
 
         private void BuildBills()
@@ -96,7 +112,14 @@ namespace Nyangsta.Arcade
             var holder = other.GetComponentInParent<StackHolder>();
             if (holder == null) return;
 
-            _target = holder.transform;
+            TryCollect(holder.transform);
+        }
+
+        public bool TryCollect(Transform collector)
+        {
+            if (_target != null || collector == null) return false;
+
+            _target = collector;
             _startPos = transform.position;
             _t = 0f;
             _billClock = 0f;
@@ -106,6 +129,7 @@ namespace Nyangsta.Arcade
 
             HidePileVisuals();
             LaunchBills();
+            return true;
         }
 
         private void HidePileVisuals()
@@ -213,6 +237,8 @@ namespace Nyangsta.Arcade
 
         private void OnDestroy()
         {
+            RegisteredPiles.Remove(this);
+
             // Detached pieces are not children anymore; clean them up explicitly.
             if (_bills != null)
                 for (int i = 0; i < BILL_COUNT; i++)

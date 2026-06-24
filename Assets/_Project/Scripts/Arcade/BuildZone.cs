@@ -2,6 +2,7 @@ using UnityEngine;
 using Nyangsta.Economy;
 using System.Collections.Generic;
 using Nyangsta.Save;
+using Nyangsta.UI;
 
 namespace Nyangsta.Arcade
 {
@@ -25,8 +26,12 @@ namespace Nyangsta.Arcade
         private ArcadeProgressService _progress;
         private bool _partialDirty;
         private float _lastPartialSaveTime = -10f;
+        private float _labelTimer;
+        private string _lastLabel;
 
         private const float PartialSaveInterval = 0.75f;
+        private const float LabelRefreshInterval = 0.25f;
+        private const double WoodBuildValue = 12;
 
         public static IReadOnlyList<BuildZone> ActiveZones => RegisteredZones;
         public string DisplayName => displayName;
@@ -63,6 +68,19 @@ namespace Nyangsta.Arcade
             UpdateLabel();
         }
 
+        private void Update()
+        {
+            _labelTimer += Time.deltaTime;
+            if (_labelTimer < LabelRefreshInterval) return;
+            _labelTimer = 0f;
+            UpdateLabel();
+        }
+
+        protected override void OnAgentEnter(StackHolder agent)
+        {
+            if (IsPlayer(agent)) UpdateLabel(true);
+        }
+
         protected override void OnAgentStay(StackHolder agent, float dt)
         {
             if (_paid >= totalCost || !IsPlayer(agent)) return;
@@ -70,6 +88,8 @@ namespace Nyangsta.Arcade
             _timer += dt;
             if (_timer < tickInterval) return;
             _timer = 0f;
+
+            if (TryApplyWood(agent)) return;
 
             double remaining = totalCost - _paid;
             double tick = System.Math.Min(drainPerTick, remaining);
@@ -79,8 +99,30 @@ namespace Nyangsta.Arcade
             _paid += tick;
             StorePartialPayment(false);
             Nyangsta.Audio.Sfx.CoinTick();
-            UpdateLabel();
+            UpdateLabel(true);
             if (_paid >= totalCost) Complete();
+        }
+
+        protected override void OnAgentExit(StackHolder agent)
+        {
+            if (IsPlayer(agent)) UpdateLabel(true);
+        }
+
+        private bool TryApplyWood(StackHolder agent)
+        {
+            if (agent == null || agent.CurrentType != ArcadeItemType.Wood) return false;
+
+            var wood = agent.Pop();
+            if (wood == null) return false;
+
+            Destroy(wood.gameObject);
+            _paid += System.Math.Min(WoodBuildValue, totalCost - _paid);
+            StorePartialPayment(false);
+            Nyangsta.Audio.Sfx.Pop();
+            Nyangsta.Core.Haptics.Light();
+            UpdateLabel(true);
+            if (_paid >= totalCost) Complete();
+            return true;
         }
 
         /// <summary>Hook this zone into the save-backed progress tracker.</summary>
@@ -204,10 +246,30 @@ namespace Nyangsta.Arcade
             if (_partialDirty) StorePartialPayment(true);
         }
 
-        private void UpdateLabel()
+        private void UpdateLabel(bool force = false)
         {
-            if (costBubble != null)
-                costBubble.SetValue($"{RemainingCost:N0}");
+            if (costBubble == null) return;
+
+            string label;
+            var player = Occupant;
+            bool playerInside = IsPlayer(player);
+
+            if (playerInside && player.CurrentType == ArcadeItemType.Wood)
+            {
+                label = $"+{WoodBuildValue:N0} 나무";
+            }
+            else
+            {
+                double remaining = RemainingCost;
+                double gold = EconomyManager.Instance != null ? EconomyManager.Instance.Gold : 0;
+                label = gold >= remaining
+                    ? "건설 가능"
+                    : $"부족 {Num.Short(System.Math.Max(0, remaining - gold))}";
+            }
+
+            if (!force && label == _lastLabel) return;
+            _lastLabel = label;
+            costBubble.SetValue(label);
         }
 
         private static bool IsPlayer(StackHolder agent)

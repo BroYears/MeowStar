@@ -25,7 +25,10 @@ namespace Nyangsta.Arcade
         private float _cookTimer;
         private float _transferTimer;
 
+        public ArcadeItemType InputType => inputType;
+        public ArcadeItemType OutputType => outputPrefab != null ? outputPrefab.type : ArcadeItemType.None;
         public bool HasOutput => _outputs.Count > 0;
+        public bool HasPendingWork => HasOutput || IsCooking;
 
         /// <summary>True while a dish is actually being worked on (drives the wobble FX).</summary>
         public bool IsCooking => _inputBuffer > 0 && outputSlots != null && _outputs.Count < outputSlots.Length;
@@ -77,6 +80,11 @@ namespace Nyangsta.Arcade
         }
 
         protected override void OnAgentStay(StackHolder agent, float dt)
+        {
+            TickStation(agent, dt);
+        }
+
+        public void TickStation(StackHolder agent, float dt)
         {
             _transferTimer += dt;
             if (_transferTimer < transferInterval) return;

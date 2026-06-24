@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using Nyangsta.Economy;
 using Nyangsta.Save;
+using Nyangsta.UI;
 
 namespace Nyangsta.Arcade
 {
@@ -30,8 +31,12 @@ namespace Nyangsta.Arcade
         private Action<int> _applyLevel;
         private bool _partialDirty;
         private float _lastPartialSaveTime = -10f;
+        private float _labelTimer;
+        private string _lastTitle;
+        private string _lastValue;
 
         private const float PartialSaveInterval = 0.75f;
+        private const float LabelRefreshInterval = 0.25f;
 
         public int Level => _level;
         public bool IsMaxed => _level >= maxLevel;
@@ -80,6 +85,19 @@ namespace Nyangsta.Arcade
             if (_partialDirty) StorePartialPayment(true);
         }
 
+        private void Update()
+        {
+            _labelTimer += Time.deltaTime;
+            if (_labelTimer < LabelRefreshInterval) return;
+            _labelTimer = 0f;
+            UpdateLabel();
+        }
+
+        protected override void OnAgentEnter(StackHolder agent)
+        {
+            if (IsPlayer(agent)) UpdateLabel(true);
+        }
+
         protected override void OnAgentStay(StackHolder agent, float dt)
         {
             if (IsMaxed || !IsPlayer(agent)) return;
@@ -97,7 +115,12 @@ namespace Nyangsta.Arcade
             StorePartialPayment(false);
             Nyangsta.Audio.Sfx.CoinTick();
             if (_paidTowardNext >= NextCost) LevelUp();
-            UpdateLabel();
+            UpdateLabel(true);
+        }
+
+        protected override void OnAgentExit(StackHolder agent)
+        {
+            if (IsPlayer(agent)) UpdateLabel(true);
         }
 
         private void LevelUp()
@@ -211,19 +234,34 @@ namespace Nyangsta.Arcade
         private double CostForLevel(int level) =>
             System.Math.Round(baseCost * System.Math.Pow(costGrowth, level));
 
-        private void UpdateLabel()
+        private void UpdateLabel(bool force = false)
         {
             if (costBubble == null) return;
+
+            string title;
+            string value;
             if (IsMaxed)
             {
-                costBubble.SetTitle($"{displayName} MAX", 26, new Vector2(0f, 0.24f), Nyangsta.UI.UITheme.LeafDark);
-                costBubble.SetIconVisible(false);
-                costBubble.SetValue("");
-                return;
+                title = $"{displayName} MAX";
+                value = "";
             }
-            costBubble.SetTitle($"{displayName} Lv.{_level}", 26, new Vector2(0f, 0.24f));
-            costBubble.SetIconVisible(true);
-            costBubble.SetValue($"{NextCost - _paidTowardNext:N0}");
+            else
+            {
+                title = $"{displayName} Lv.{_level}";
+                double remaining = System.Math.Max(0, NextCost - _paidTowardNext);
+                double gold = EconomyManager.Instance != null ? EconomyManager.Instance.Gold : 0;
+                value = gold >= remaining
+                    ? "강화 가능"
+                    : $"부족 {Num.Short(System.Math.Max(0, remaining - gold))}";
+            }
+
+            if (!force && title == _lastTitle && value == _lastValue) return;
+            _lastTitle = title;
+            _lastValue = value;
+
+            costBubble.SetTitle(title, 26, new Vector2(0f, 0.24f), IsMaxed ? UITheme.LeafDark : UITheme.Ink);
+            costBubble.SetIconVisible(!IsMaxed);
+            costBubble.SetValue(value);
         }
 
         private static bool IsPlayer(StackHolder agent)

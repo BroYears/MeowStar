@@ -2,6 +2,7 @@ using UnityEngine;
 using Nyangsta.Economy;
 using System.Collections.Generic;
 using Nyangsta.Save;
+using Nyangsta.UI;
 
 namespace Nyangsta.Arcade
 {
@@ -25,6 +26,7 @@ namespace Nyangsta.Arcade
         [SerializeField] private ArcadeItemType rawType;
         [SerializeField] private ArcadeItemType cookedType;
         [SerializeField] private Transform spawnPoint;
+        [SerializeField] private bool moneyCollector;
 
         private double _paid;
         private float _timer;
@@ -33,8 +35,11 @@ namespace Nyangsta.Arcade
         private ArcadeProgressService _progress;
         private bool _partialDirty;
         private float _lastPartialSaveTime = -10f;
+        private float _labelTimer;
+        private string _lastLabel;
 
         private const float PartialSaveInterval = 0.75f;
+        private const float LabelRefreshInterval = 0.25f;
 
         public static IReadOnlyList<HireZone> ActiveZones => RegisteredZones;
         public string DisplayName => displayName;
@@ -64,6 +69,28 @@ namespace Nyangsta.Arcade
             rawType = raw;
             cookedType = cooked;
             spawnPoint = spawn;
+            moneyCollector = false;
+            UpdateLabel();
+        }
+
+        public void ConfigureMoneyCollector(
+            double cost,
+            double tick,
+            WorldBubble bubble,
+            Transform spawn,
+            string name)
+        {
+            totalCost = System.Math.Max(1, cost);
+            drainPerTick = System.Math.Max(1, tick);
+            costBubble = bubble;
+            displayName = string.IsNullOrWhiteSpace(name) ? displayName : name;
+            gatherZone = null;
+            cookStation = null;
+            tables = null;
+            rawType = ArcadeItemType.None;
+            cookedType = ArcadeItemType.None;
+            spawnPoint = spawn;
+            moneyCollector = true;
             UpdateLabel();
         }
 
@@ -80,11 +107,24 @@ namespace Nyangsta.Arcade
             RegisteredZones.Remove(this);
         }
 
+        private void Update()
+        {
+            _labelTimer += Time.deltaTime;
+            if (_labelTimer < LabelRefreshInterval) return;
+            _labelTimer = 0f;
+            UpdateLabel();
+        }
+
+        protected override void OnAgentEnter(StackHolder agent)
+        {
+            if (IsPlayer(agent)) UpdateLabel(true);
+        }
+
         protected override void OnAgentStay(StackHolder agent, float dt)
         {
             if (_hired || _paid >= totalCost || !IsPlayer(agent) || !IsFacilityReady())
             {
-                UpdateLabel();
+                UpdateLabel(true);
                 return;
             }
 
@@ -100,8 +140,13 @@ namespace Nyangsta.Arcade
             _paid += tick;
             StorePartialPayment(false);
             Nyangsta.Audio.Sfx.CoinTick();
-            UpdateLabel();
+            UpdateLabel(true);
             if (_paid >= totalCost) Hire();
+        }
+
+        protected override void OnAgentExit(StackHolder agent)
+        {
+            if (IsPlayer(agent)) UpdateLabel(true);
         }
 
         /// <summary>Hook this zone into the save-backed progress tracker.</summary>
@@ -222,7 +267,7 @@ namespace Nyangsta.Arcade
         private void SpawnStaff()
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            go.name = "Staff_Nyangsta";
+            go.name = moneyCollector ? "Staff_MoneyCollector" : "Staff_Nyangsta";
             go.transform.localScale = new Vector3(0.82f, 0.82f, 0.82f);
 
             Vector3 pos = spawnPoint != null ? spawnPoint.position : transform.position;
@@ -262,16 +307,40 @@ namespace Nyangsta.Arcade
             anchor.localPosition = new Vector3(0f, 2.0f, 0f);
             stack.Configure(anchor, 3);
 
-            var agent = go.AddComponent<StaffAgent>();
-            agent.Configure(gatherZone, cookStation, tables, rawType, cookedType);
+            if (moneyCollector)
+            {
+                go.AddComponent<MoneyCollectorAgent>().Configure(pos);
+            }
+            else
+            {
+                var agent = go.AddComponent<StaffAgent>();
+                agent.Configure(gatherZone, cookStation, tables, rawType, cookedType);
+            }
         }
 
-        private void UpdateLabel()
+        private void UpdateLabel(bool force = false)
         {
             if (costBubble == null) return;
             bool ready = IsFacilityReady();
             costBubble.SetIconVisible(ready);
-            costBubble.SetValue(ready ? $"{RemainingCost:N0}" : "잠김");
+
+            string label;
+            if (!ready)
+            {
+                label = "선행시설";
+            }
+            else
+            {
+                double remaining = RemainingCost;
+                double gold = EconomyManager.Instance != null ? EconomyManager.Instance.Gold : 0;
+                label = gold >= remaining
+                    ? "고용 가능"
+                    : $"부족 {Num.Short(System.Math.Max(0, remaining - gold))}";
+            }
+
+            if (!force && label == _lastLabel) return;
+            _lastLabel = label;
+            costBubble.SetValue(label);
         }
 
         private bool IsFacilityReady()
